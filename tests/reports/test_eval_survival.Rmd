@@ -1,0 +1,141 @@
+---
+title: "Evaluate testing data (survival)"
+author: "Andrew Chang"
+date: '`r Sys.Date()`'
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+  html_notebook:
+    code_folding: show
+    fig_caption: yes
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+---
+
+Labels: os_time
+
+
+## 0. Load Data
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggrepel)
+library(survival)
+library(survminer)
+library(randomForestSRC)
+library(broom)
+source("~/ml-pipeline/ML_performanceCheck/PerformanceUtils.R")
+
+home <- "~/ml-pipeline/tests"
+project_name <- "test_survival_1"
+training_data <- "test_regr_surv_tcga_brca.csv"
+label_name <- "os_time"
+
+## output path for analyzed data
+outfile <- paste0(home, "/results/", project_name)
+```
+
+```{r, message=FALSE, comment=NA, echo=FALSE}
+#df.err <- getResults(home, project_name, "error")
+df.preval <- getResults(home, project_name, "prevalidation")
+
+## get original data info
+df.orig <- read_csv(paste0(home, "/data/", training_data))
+
+tot.sample <- dim(df.orig)[1]
+tot.feature <- max(df.preval$size)
+num.cv <- length(unique(df.preval$cv))
+num.seed <- length(unique(df.preval$seed))
+
+cat(tot.sample, "of samples were used \n")
+cat(tot.feature, "of full features\n")
+cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
+#cat("Labels:\n")
+#knitr::kable(data.frame(table(df.orig[[label_name]])))
+```
+
+
+## 1. Scores
+
+`average = T`: scores are based on pre-validation (combine predictions from all CVs per job and then calculate a single score per job). 
+
+`average = F`: report all the scores from each CV across entire jobs. 
+
+## 1. Scores
+
+### 1.1 uncalibrated average
+
+```{r, fig.width=10, fig.height=12, echo=FALSE, message=FALSE, warning=FALSE}
+plt <- plotHR(df.preval, average = TRUE)
+plt$overall +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r}
+score.med <- plt$df.scores %>% 
+  gather("metrics", "score", -one_of(c("seed", "size"))) %>% 
+  group_by(seed, size, metrics) %>% 
+  summarize(avg.score = mean(score)) %>% 
+  filter(metrics %in% c("HR", "cindex")) %>% 
+  group_by(size, metrics) %>% 
+  summarize(med = round(median(avg.score), 3)) 
+
+cmax <- score.med %>% 
+  filter(metrics == "cindex") %>% 
+  arrange(desc(med)) %>% 
+  head(1)
+hrmin <- score.med %>% 
+  filter(metrics == "HR") %>% 
+  arrange(med) %>% 
+  head(1)
+
+knitr::kable(rbind(cmax, hrmin))
+```
+
+```{r}
+df.in <- df.preval %>% 
+  filter(size == 40, seed==1001) %>% # seed==1001
+  mutate(pred.binary = ifelse(pred < median(pred), 1, 0))
+
+fit1 <- survfit(Surv(col_surv, col_event) ~ pred.binary, data = df.in)
+ggsurvplot(fit1, data = df.in, pval = TRUE)
+```
+
+## 3. Important Features
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+df.vimp <- getResults(home, project_name, "vimp")
+
+df.vimp.plt <- plotVIMP(df.vimp, bin = 50)
+df.vimp.avg <- df.vimp.plt$df
+
+## plot
+df.vimp.plt$plt.dist.f
+df.vimp.plt$plt.fts.f
+df.vimp.plt$plt.dist.g
+df.vimp.plt$plt.fts.g
+
+write_csv(df.vimp.avg, paste0(outfile, "/Analyzed_FeatureImportance_avg.csv"))
+```
+
+```{r, echo=FALSE, fig.height=8, fig.width=9}
+## vimp scatter plot
+plotVIMP_scatter(df.vimp, top_n = 20)
+```
+
+
+## 4. Hyper-parameters
+
+```{r, message=FALSE, echo=FALSE}
+df.grid <- getResults(home, project_name, "grid")
+#df.grid <- df.grid %>% select(-n_estimators)
+plotGridS(df.grid)
+```
+
+
+
+
+
