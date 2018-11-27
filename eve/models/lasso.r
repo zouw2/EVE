@@ -1,0 +1,185 @@
+#module load apps/R
+#para = c('1001', "~/2OBD/PDL1mab/go28915_oak/ihc/log/digital_pred_path1/metainfo.Rdata", '0')
+#para = c('1001', "~/2OBD/PDL1mab/go28915_oak/ihc/log/digital_pred_path2/metainfo.Rdata", '2')
+library(glmnet)
+library(survival)
+source('~/ml-pipeline/ML_engines/ml_functions.R')
+
+#################
+## User Inputs ##
+################# 
+para <- commandArgs(trailingOnly = TRUE)
+print(para)
+
+load(para[2]) ## get runSpec
+specLocal <- list(
+  seed = as.integer(para[1]), 
+  cv_id_curr = as.integer(para[3])
+)
+
+########################
+## End of User Inputs ##
+########################
+if (!file.exists(runSpec$outP)){
+  dir.create(runSpec$outP, recursive =T)
+} 
+
+outF <- paste0(runSpec$outP, 
+               "/glmnet_rdata_", runSpec$surv_col, 
+               "_seed", specLocal$seed, 
+               "_cv", specLocal$cv_id_curr, ".rdata")
+#outF <- paste(runSpec$outP, '/glmnet_', paste(unlist(specLocal), collapse="_"),'.rdata', sep='')
+
+if( file.exists(outF) && T) { ## what is this T?
+  print(paste(outF,'already exits. quitting...'))
+  q()
+}  
+
+#########################
+## read & process data ##
+#########################
+df <- read.csv(paste(runSpec$project_home, runSpec$training_data, sep='/'), 
+               as.is=T)
+
+if(is.na(runSpec$sample_ID)|is.null(runSpec$sample_ID)|(runSpec$sample_ID=="")){
+  print("Use index as sample ID")
+} else {
+  rownames(df) <- as.character(df[[runSpec$sample_ID]])
+  stopifnot(runSpec$sample_ID %in% colnames(df))
+  stopifnot(!any(duplicated(as.character(df[[runSpec$sample_ID]]))))
+}
+
+if (runSpec$family %in%  'cox') {
+  stopifnot(all(c(  runSpec$surv_col, runSpec$event_col) %in% colnames(df)))
+  y <- data.matrix( df[,c(runSpec$surv_col, runSpec$event_col)] )
+  colnames(y) <- c("col_surv", "col_event") 
+  
+}  
+if (runSpec$family %in% c("multinomial", "binomial")) {
+  stopifnot(runSpec$label_name %in% colnames(df))
+  
+  df[[runSpec$label_name]] <- factor(df[[runSpec$label_name]], 
+                                     levels = c(runSpec$referenece_level, sort( setdiff(unique(df[[runSpec$label_name]]), runSpec$referenece_level))))
+  y <- df[, runSpec$label_name, drop=F] # y will be handled similarly for cox and categorical outcome
+}  
+
+col2drop <- c(runSpec$label_name, runSpec$sample_ID,
+              runSpec$surv_col,   runSpec$event_col)
+
+x <- data.matrix( df[,!(colnames(df) %in% col2drop)] ) ## why data.matrix not data.frame
+
+###########################
+## handle input features ##
+###########################
+
+## ToDo: allow user to input feature of interest
+
+featureList <- NULL
+if(is.null(featureList)){
+  featureList <- colnames(x)
+}else{
+  stopifnot(all(featureList %in% colnames(x)))
+}
+
+nFeature <- length(featureList)
+######################
+## handle RFE steps ##
+######################
+
+# not applicable for glmnet
+
+###############
+## handle CV ##
+###############
+set.seed(specLocal$seed)
+
+if (runSpec$family %in% 'cox') {
+  cvList <- caret::createFolds(y[, "col_surv"] * (as.integer(y[, "col_event"]) - 0.5), 
+                               k = runSpec$num_CV, 
+                               list = TRUE, returnTrain = FALSE)
+}
+
+if (runSpec$family %in% c("multinomial", "binomial")) {
+  stopifnot(is.factor(y[, runSpec$label_name]) )
+  print(table(y[, runSpec$label_name]))
+  cvList <- caret::createFolds(y[, runSpec$label_name], 
+                               k = runSpec$num_CV, 
+                               list = TRUE, returnTrain = FALSE)
+}
+
+
+start.time <- Sys.time()
+## Note: using for loop is because we can keep track of cv_id in the output
+
+df_vimp <- data.frame()
+df_pred <- data.frame()
+
+cv_id <- 1
+
+start.time <- Sys.time()
+
+for (cv.idx in cvList){
+  if (specLocal$cv_id_curr == 0){
+    print("CVs within job")
+    print(paste("Fold number:", cv_id))
+    X_train = x[-cv.idx, featureList, drop=F]
+    Y_train = y[-cv.idx, , drop=F]
+    X_test  = x[ cv.idx, featureList, drop=F]
+    Y_test  = y[ cv.idx, , drop=F]
+    print(paste('using', paste(head(cv.idx, 10), collapse=','),',etc, as validation' ))
+    
+    df.out <- glmnetCVwrapper2(X_train, Y_train, X_test, seed=specLocal$seed, 
+                               glmnetFam = runSpec$family, 
+                               a1 = runSpec$alpha, 
+                               nCv4lambda = runSpec$nCv4lambda, 
+                               lambdaSum = match.fun(runSpec$lambdaSum), 
+                               lambdaChoice = runSpec$lambdaChoice, 
+                               w = runSpec$weight.value[-cv.idx])
+    
+    df_vimp_tmp <- data.frame("feature" = df.out$features,
+                              "lambda" = df.out$lambda,
+                              "cv" = cv_id)
+    df_pred_tmp <- df.out$pred
+    df_pred_tmp["cv"] <- cv_id
+    
+    #df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test)
+    print(paste0("dim df_vimp: ", dim(df_vimp_tmp)))
+    print(paste0("dim df_pred: ", dim(df_pred_tmp)))
+    df_vimp <- rbind(df_vimp, df_vimp_tmp)
+    df_pred <- rbind(df_pred, df_pred_tmp)
+    
+  } else if (specLocal$cv_id_curr == cv_id){
+    print("1 CV per job")
+    print(paste("Fold number:", cv_id))
+    X_train = x[-cv.idx, featureList, drop=F]
+    Y_train = y[-cv.idx, , drop=F]
+    X_test  = x[ cv.idx, featureList, drop=F]
+    Y_test  = y[ cv.idx, , drop=F]
+    print(paste('using', paste(head(cv.idx, 10), collapse=','),',etc, as validation' ))
+    df.out <- glmnetCVwrapper2(X_train, Y_train, X_test, seed=specLocal$seed, 
+                               glmnetFam = runSpec$family, 
+                               a1 = runSpec$alpha, 
+                               nCv4lambda = runSpec$nCv4lambda, 
+                               lambdaSum = match.fun(runSpec$lambdaSum), 
+                               lambdaChoice = runSpec$lambdaChoice, 
+                               w = runSpec$weight.value[-cv.idx])
+    
+    df_vimp_tmp <- data.frame("feature" = df.out$features,
+                              "lambda" = df.out$lambda,
+                              "cv" = cv_id)
+    df_pred_tmp <- df.out$pred
+    df_pred_tmp["cv"] <- cv_id
+    
+    #df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test)
+    df_vimp <- rbind(df_vimp, df_vimp_tmp)
+    df_pred <- rbind(df_pred, df_pred_tmp)
+  }
+  cv_id <- cv_id + 1
+}
+stopifnot(!any(duplicated(df_pred$sample_ID)))
+save(df_pred, df_vimp, file=outF)
+
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+
+print(paste('time taken: ', time.taken)) # give the running length helps user to pick a queue type
