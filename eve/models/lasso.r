@@ -58,8 +58,11 @@ if (runSpec$family %in%  'cox') {
 if (runSpec$family %in% c("multinomial", "binomial")) {
   stopifnot(runSpec$label_name %in% colnames(df))
   
-  df[[runSpec$label_name]] <- factor(df[[runSpec$label_name]], 
-                                     levels = c(runSpec$referenece_level, sort( setdiff(unique(df[[runSpec$label_name]]), runSpec$referenece_level))))
+  df[[runSpec$label_name]] <- factor(df[[runSpec$label_name]])
+  y <- df[, runSpec$label_name, drop=F] # y will be handled similarly for cox and categorical outcome
+} 
+if (runSpec$family %in% c("gaussian")) {
+  stopifnot(runSpec$label_name %in% colnames(df))
   y <- df[, runSpec$label_name, drop=F] # y will be handled similarly for cox and categorical outcome
 }  
 
@@ -107,6 +110,12 @@ if (runSpec$family %in% c("multinomial", "binomial")) {
                                list = TRUE, returnTrain = FALSE)
 }
 
+if (runSpec$family %in% c("gaussian")) {
+  stopifnot(is.numeric(y[, runSpec$label_name]))
+  cvList <- caret::createFolds(y[, runSpec$label_name], 
+                               k = runSpec$num_CV, 
+                               list = TRUE, returnTrain = FALSE)
+}
 
 start.time <- Sys.time()
 ## Note: using for loop is because we can keep track of cv_id in the output

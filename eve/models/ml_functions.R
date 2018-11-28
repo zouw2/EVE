@@ -35,6 +35,13 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, seed = 27519,
     print(table(Y_train))
   }
   
+  if (glmnetFam %in% c("gaussian") ) {
+    if (class(Y_train) %in% c('matrix','data.frame')) Y_train <- Y_train[, 1]
+    stopifnot( is.numeric(Y_train) );
+    print('training data outcome')
+    print(summary(Y_train))
+  }
+  
   if (glmnetFam %in% "cox") {
     
     stopifnot(is.matrix(Y_train) && ncol(Y_train) == 2 && all ( Y_train[, 2] %in% c(T,F)))
