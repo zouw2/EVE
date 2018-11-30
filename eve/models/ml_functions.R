@@ -141,12 +141,9 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
       if (outputPrediction %in% 'chf'){pred2 <- exp( -pred2 )} # convert cumulative hazard to survival
       pred2 <- data.frame(pred2)
       rownames(pred2) <- rownames(X_test)
-      colnames(pred2) <- as.character( pred$time.interest )
+      pred2.times <- as.character( pred$time.interest )
       pred2 <- apply(pred2 , 1, paste, collapse = "," ) ## squash all columns to one single column
-      #pred2 <- data.frame( pred2, n=s,sample_ID  = row.names(ds1)[sel],stringsAsFactors = F, row.names=NULL )
     }
-    #df_surv <- data.frame(pred$survival)
-    #df_surv <- apply(df_surv , 1, paste, collapse = "," )
     
     ## get brier score
     if( dim(X_test)[1] > 1 ) {
@@ -159,13 +156,14 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
     
     df_pred_tmp <- data.frame(pred = pred$predicted, 
                               size = s,
+                              BrierScore = ifelse( dim(X_test)[1] > 1, ibrier['randomforestSRC', 1], NA),
                               surv_prob = pred2,
-                              ibs = ifelse( dim(X_test)[1] > 1, ibrier['randomforestSRC', 1], NA),
                               stringsAsFactors = F, 
                               row.names=NULL)
     
-    
     df_pred_tmp <- cbind(Y_test, df_pred_tmp)
+    ## save surv_prob times, because different CV may have different predicted prob times
+    df_pred_tmp$surv_prob.times = list(pred2.times) 
     
     df_vimp <- rbind(df_vimp, df_vimp_tmp)
     df_pred <- rbind(df_pred, df_pred_tmp)
