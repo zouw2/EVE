@@ -49,7 +49,7 @@ runSpec <- list(
 #######################
 ## End of User Input ##
 #######################
-source("~/ml-pipeline/ML_submit/utils/sbatch_submit.R")
+source("~/EVE/eve/submit/utils/sbatch_submit.R")
 sbatch_submit(runSpec)
 
 

@@ -45,7 +45,7 @@ generate_cmd <- function(runSpec, curr_seed, cv, file_run, file_cmd){
 
 sbatch_submit <- function(runSpec){
   
-  engine_path <- "~/ml-pipeline/ML_engines/"
+  engine_path <- "~/EVE/eve/models/"
   #engineFile <- paste0(engine_path, runSpec$engine)
   runSpec["engineFile"] <- paste0(engine_path, runSpec$engine)
   
