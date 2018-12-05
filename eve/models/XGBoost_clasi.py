@@ -3,15 +3,19 @@
 
 import sys
 import os
-from xgboost import sklearn
 from sklearn.model_selection import StratifiedKFold, KFold
 import pandas as pd
 import numpy as np
 import time
 from functools import reduce
 
+import sklearn
+import xgboost
+#print("sklearn version: ", sklearn.__version__)
+#print("xgboost version: ", xgboost.__version__)
+
 ## import custom functions
-codepath = "~/ml-pipeline/ML_engines/"
+codepath = "~/EVE/eve/models/"
 sys.path.append(codepath)
 from XGBoost_utils import unit_train
 
@@ -170,10 +174,10 @@ else:
 
 ## set up initial xgboost
 if label=="OS" or label=="PFS":
-  xgbc = sklearn.XGBRegressor(**xgb_params)
+  xgbc = xgboost.sklearn.XGBRegressor(**xgb_params)
   ss.get_n_splits(x)
 else:
-  xgbc = sklearn.XGBClassifier(**xgb_params)
+  xgbc = xgboost.sklearn.XGBClassifier(**xgb_params)
   ss.get_n_splits(x, y)
     
 ## initialize empty output dataframes

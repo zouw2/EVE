@@ -13,7 +13,7 @@ import time
 from functools import reduce
 
 ## import custom functions
-codepath = "~/ml-pipeline/ML_engines/"
+codepath = "~/EVE/eve/models/"
 sys.path.append(codepath)
 from XGBoost_utils import unit_train
 

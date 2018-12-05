@@ -6,7 +6,7 @@ from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV
 from sklearn.externals import joblib 
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, roc_auc_score
 from sklearn.calibration import CalibratedClassifierCV
-from lifelines import CoxPHFitter
+#from lifelines import CoxPHFitter
 import pandas as pd
 import numpy as np
 
@@ -56,31 +56,31 @@ def grid_search(xgbc, X_train, Y_train, X_test, Y_test, evalm):
     print("The best parameters are %s with a score of %0.2f" % (grid.best_params_, grid.best_score_))
     return(grid)
 
-def get_hr(Y_test_surv, pred):
-    """Calculates hazard ratio between 2 classes only
-    
-    Parameters
-    ----------
-    Y_test_surv: dataframe 
-        It has to contains two columns, 
-        one is survival time (PFS/OS), one is event flag (1/0)
-        colname has to be col_surv and col_event respectively
-    pred: np.array or pd.series
-        This is the prediciton results (array) for each patients
-    
-    Returns
-    ---------
-    hr : float
-        hazard ratio for the class 1 vs class 0
-        
-    """
-    df = Y_test_surv.copy()
-    df['pred'] = pred
-    cox = CoxPHFitter()
-    cox.fit(df, 'col_surv', 'col_event')
-    hr = np.exp(cox.hazards_)['pred'].values
-    
-    return(np.float(hr))
+# def get_hr(Y_test_surv, pred):
+#     """Calculates hazard ratio between 2 classes only
+#     
+#     Parameters
+#     ----------
+#     Y_test_surv: dataframe 
+#         It has to contains two columns, 
+#         one is survival time (PFS/OS), one is event flag (1/0)
+#         colname has to be col_surv and col_event respectively
+#     pred: np.array or pd.series
+#         This is the prediciton results (array) for each patients
+#     
+#     Returns
+#     ---------
+#     hr : float
+#         hazard ratio for the class 1 vs class 0
+#         
+#     """
+#     df = Y_test_surv.copy()
+#     df['pred'] = pred
+#     cox = CoxPHFitter()
+#     cox.fit(df, 'col_surv', 'col_event')
+#     hr = np.exp(cox.hazards_)['pred'].values
+#     
+#     return(np.float(hr))
 
 def metrics(y_true, y_pred, y_pred_prob = None):
     '''Calculate some model evaluation metrics for pre-validation
@@ -169,9 +169,9 @@ def confM(xgbc, X_test, Y_test, evalm, xgbc_cali=None, Y_test_surv=None):
     if Y_test_surv is not None:
         if evalm == "cox-nloglik":
             Y_pred_binary = np.where(Y_pred < 0.5, 1, 0)
-            hr = get_hr(Y_test_surv, Y_pred_binary)
-        else:   
-            hr = get_hr(Y_test_surv, Y_pred)
+            #hr = get_hr(Y_test_surv, Y_pred_binary)
+        #else:   
+            #hr = get_hr(Y_test_surv, Y_pred)
             
         #df["HR"] = hr
         
