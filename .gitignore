@@ -6,3 +6,4 @@ EVE.Rproj
 tests/log/
 tests/results
 *.pyc
+*.html
