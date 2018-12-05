@@ -1,6 +1,4 @@
-Python == 2.7
 numpy >= 1.10
 pandas >= 0.23
 scikit-learn >= 0.19
 xgboost >= 0.72
-
