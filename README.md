@@ -55,6 +55,10 @@ Rscript ~/EVE/tests/sbatch_xgb_regression.R
 
 If it is R engines, just open sbatch_xxx.R, and then click **Source** in RStudio.
 
+Note: once the job is submitted you will see `log` folder under tests. 
+When job is done, you will see `results` folder contianing all outputs files. 
+**Please do NOT Push these two folders to this repo because those files can be huge**
+
 #### 3.2 Harvest Results
 
   - go to `tests/reports`
