@@ -1,0 +1,109 @@
+---
+title: "Evaluate testing data (multi-class) - xgboost"
+author: "Andrew Chang"
+date: '`r Sys.Date()`'
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+Labels: 
+  0: Basal
+  1: LumA
+  2: LumB
+  3: Her2
+
+
+```{r}
+## user input
+project_home <- "~/EVE/tests"
+project_name <- "xgboost_multi_outCV_test"
+```
+
+## 0. Load Data
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(broom)
+library(caret)
+library(pROC)
+library(ggrepel)
+source("~/EVE/eve/reports/utils/PerformanceUtils.R")
+load(paste0(project_home,"/log/", project_name, "/metainfo.Rdata"))
+
+if(grepl("\\.r$|\\.R$", runSpec$engine)){
+  df.preval <- getResults(project_home, project_name, "rdata", objName = "df_pred")
+  df.vimp   <- getResults(project_home, project_name, "rdata", objName = "df_vimp")
+} else {
+  df.preval <- getResults(project_home, project_name, "prevalidation")
+  df.vimp   <- getResults(project_home, project_name, "vimp")
+}
+
+## get original data info
+df.orig <- read_csv(paste(project_home, runSpec$training_data, sep="/"))
+
+tot.sample <- dim(df.orig)[1]
+tot.feature <- max(df.preval$size)
+num.cv <- length(unique(df.preval$cv))
+num.seed <- length(unique(df.preval$seed))
+
+cat(tot.sample, "of samples were used \n")
+cat(tot.feature, "of full features\n")
+cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
+cat("Labels:\n")
+table(df.orig[[runSpec$label_name]])
+```
+
+
+## 1. Scores
+
+`average = T`: scores are based on pre-validation (combine predictions from all CVs per job and then calculate a single score per job). 
+
+`average = F`: report all the scores from each CV across entire jobs. 
+
+```{r, fig.width=8, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+plt <- plotScores(df.preval, runSpec$label_name)
+plt$byClass +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_y_continuous(breaks = seq(0, 1, 0.1))
+```
+
+```{r, echo=FALSE}
+plt$overall +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+## 2. Important Features
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+#df.vimp.plt <- plotVIMP(df.vimp, bin = 50)
+df.vimp.plt <- plotVIMP(df.vimp, bin = 50, ft_num = 40)
+df.vimp.avg <- df.vimp.plt$df
+
+## plot
+df.vimp.plt$plt.dist.f
+df.vimp.plt$plt.fts.f
+df.vimp.plt$plt.dist.g
+df.vimp.plt$plt.fts.g
+
+write_csv(df.vimp.avg, paste0(runSpec$outP, "/Analyzed_FeatureImportance_avg.csv"))
+```
+
+```{r, echo=FALSE, fig.height=8, fig.width=9}
+## vimp scatter plot
+plotVIMP_scatter(df.vimp, top_n = 20, ft_num = 40)
+```
+
+
+## 3. Hyper-parameters
+
+```{r, message=FALSE, echo=FALSE}
+df.grid <- getResults(project_home, project_name, "grid")
+#df.grid <- df.grid %>% select(-n_estimators)
+plotGridS(df.grid)
+```
+
+
+
+
+
