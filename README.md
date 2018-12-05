@@ -71,6 +71,6 @@ When job is done, you will see `results` folder containing all outputs files.
 ### Harvest Results
 
   - go to `tests/reports/`
-  - choose corresponding `.Rmd` file. 
+  - choose corresponding `.Rmd` file (these .Rmd files are reporting template). 
   (for example, if `sbatch_xgb_regression.R` was used, 
   then use `test_eval_regression_xgboost.Rmd`)
