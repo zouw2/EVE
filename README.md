@@ -11,7 +11,7 @@
 ```console
 ssh rescomp5003.gene.com
 cd ~
-git clone https://github.roche.com/ED-EB/EVE.git
+git clone -branch master https://github.roche.com/ED-EB/EVE.git
 ```
 
 
