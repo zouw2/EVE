@@ -3,7 +3,7 @@
 #para = c('1001', "~/2OBD/PDL1mab/go28915_oak/ihc/log/digital_pred_path2/metainfo.Rdata", '2')
 library(glmnet)
 library(survival)
-source('~/ml-pipeline/ML_engines/ml_functions.R')
+source('~/EVE/eve/models/ml_functions.R')
 
 #################
 ## User Inputs ##
@@ -24,16 +24,20 @@ if (!file.exists(runSpec$outP)){
   dir.create(runSpec$outP, recursive =T)
 } 
 
+if(runSpec$family == "cox"){
+  runSpec$label_name <- runSpec$surv_col
+}
+
 outF <- paste0(runSpec$outP, 
-               "/glmnet_rdata_", runSpec$surv_col, 
+               "/glmnet_rdata_", runSpec$label_name, 
                "_seed", specLocal$seed, 
                "_cv", specLocal$cv_id_curr, ".rdata")
 #outF <- paste(runSpec$outP, '/glmnet_', paste(unlist(specLocal), collapse="_"),'.rdata', sep='')
 
-if( file.exists(outF) && T) { ## what is this T?
-  print(paste(outF,'already exits. quitting...'))
-  q()
-}  
+#if( file.exists(outF) && T) { ## what is this T?
+#  print(paste(outF,'already exits. quitting...'))
+#  q()
+#}  
 
 #########################
 ## read & process data ##
@@ -117,7 +121,6 @@ if (runSpec$family %in% c("gaussian")) {
                                list = TRUE, returnTrain = FALSE)
 }
 
-start.time <- Sys.time()
 ## Note: using for loop is because we can keep track of cv_id in the output
 
 df_vimp <- data.frame()
@@ -135,9 +138,13 @@ for (cv.idx in cvList){
     Y_train = y[-cv.idx, , drop=F]
     X_test  = x[ cv.idx, featureList, drop=F]
     Y_test  = y[ cv.idx, , drop=F]
+    #Y_test  = cbind(Y_test, rownames(Y_test))
+    #colnames(Y_test) <- c(colnames(y), runSpec$sample_ID)
+    #Y_test[runSpec$sample_ID] <- rownames(Y_test)
     print(paste('using', paste(head(cv.idx, 10), collapse=','),',etc, as validation' ))
     
-    df.out <- glmnetCVwrapper2(X_train, Y_train, X_test, seed=specLocal$seed, 
+    df.out <- glmnetCVwrapper2(X_train, Y_train, X_test, Y_test, 
+                               seed=specLocal$seed, 
                                glmnetFam = runSpec$family, 
                                a1 = runSpec$alpha, 
                                nCv4lambda = runSpec$nCv4lambda, 
@@ -150,10 +157,8 @@ for (cv.idx in cvList){
                               "cv" = cv_id)
     df_pred_tmp <- df.out$pred
     df_pred_tmp["cv"] <- cv_id
+    df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test) ## add sample ID here
     
-    #df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test)
-    print(paste0("dim df_vimp: ", dim(df_vimp_tmp)))
-    print(paste0("dim df_pred: ", dim(df_pred_tmp)))
     df_vimp <- rbind(df_vimp, df_vimp_tmp)
     df_pred <- rbind(df_pred, df_pred_tmp)
     
@@ -164,8 +169,12 @@ for (cv.idx in cvList){
     Y_train = y[-cv.idx, , drop=F]
     X_test  = x[ cv.idx, featureList, drop=F]
     Y_test  = y[ cv.idx, , drop=F]
+    #Y_test  = cbind(Y_test, rownames(Y_test))
+    #colnames(Y_test) <- c(colnames(y), runSpec$sample_ID)
+    #Y_test[runSpec$sample_ID] <- rownames(Y_test)
     print(paste('using', paste(head(cv.idx, 10), collapse=','),',etc, as validation' ))
-    df.out <- glmnetCVwrapper2(X_train, Y_train, X_test, seed=specLocal$seed, 
+    df.out <- glmnetCVwrapper2(X_train, Y_train, X_test, Y_test, 
+                               seed=specLocal$seed, 
                                glmnetFam = runSpec$family, 
                                a1 = runSpec$alpha, 
                                nCv4lambda = runSpec$nCv4lambda, 
@@ -178,13 +187,19 @@ for (cv.idx in cvList){
                               "cv" = cv_id)
     df_pred_tmp <- df.out$pred
     df_pred_tmp["cv"] <- cv_id
+    df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test) ## add sample ID here
     
-    #df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test)
     df_vimp <- rbind(df_vimp, df_vimp_tmp)
     df_pred <- rbind(df_pred, df_pred_tmp)
   }
   cv_id <- cv_id + 1
 }
+## added 'size' column to work with reporting functions
+## note: the 'size' in Lasso is not meaningful.
+## the 'lambda' values is more meaningful, larger lambda correspond to smaller feature size
+df_vimp$size <- dim(x)[2]
+df_pred$size <- dim(x)[2]
+
 stopifnot(!any(duplicated(df_pred$sample_ID)))
 save(df_pred, df_vimp, file=outF)
 

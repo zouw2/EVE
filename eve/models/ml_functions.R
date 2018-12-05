@@ -18,13 +18,15 @@ findConstantVar <- function(ds){
   monov[!is.na(monov)]
 }  
 
-glmnetCVwrapper2 <- function(X_train , Y_train, X_test, seed = 27519, 
+glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
+                             seed = 27519, 
                              glmnetFam="binomial", a1=1, 
                              nCv4lambda=10, lambdaSum=mean, 
                              lambdaChoice = 'lambda.min',  w=1, ... ){
   
   set.seed(seed)
   stopifnot(is.matrix(X_train)); stopifnot(is.matrix(X_test))
+  stopifnot(rownames(X_test) == rownames(Y_test))
   
   if (glmnetFam %in% c("multinomial", "binomial") ) {
     if (class(Y_train) %in% c('matrix','data.frame')) Y_train <- Y_train[, 1]
@@ -66,7 +68,6 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, seed = 27519,
   print('dim of training x')
   print(dim(X_train))
   
-  
   monov <- findConstantVar(X_train)
   
   x1 <- X_train[, setdiff(colnames(X_train), monov)]
@@ -84,20 +85,53 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, seed = 27519,
 
   g1 <- glmnet(x=x1, y = (function(yobj){
     if(glmnetFam =='cox') return(Surv(yobj)); 
-    return(yobj) })(Y_train),  family = glmnetFam, alpha = a1, lambda=maxL, standardize =T, weights=w , ...)
+    return(yobj) })(Y_train),  family = glmnetFam, alpha = a1, lambda=maxL, standardize =T, weights=w, ...)
   
-  pred1 <- predict(g1, newx = X_test[, setdiff(colnames(X_test), monov)], s=maxL, type = 'response' )
+  pred.response <- predict(g1, newx = X_test[, setdiff(colnames(X_test), monov)], s=maxL, type = 'response' )
   
-  pred2 <- data.frame(pred=pred1,  row.names(X_test), stringsAsFactors = F, row.names=NULL )
-  colnames(pred2) <- c(colnames(pred1), 'sample_ID')
+  if(glmnetFam == "binomial" & dim(pred.response)[2] != 2){
+    lbs <- unique(Y_train)
+    lb.exist <- colnames(pred.response)
+    lb.missing <- setdiff(lbs, lb.exist)
+    pred.response <- cbind(pred.response, (1 - pred.response))
+    colnames(pred.response) <- c(lb.exist, lb.missing)
+  }
+  ## for survival, change the column back so that it is consistent across different algo.
+  if(glmnetFam == "cox") {
+    colnames(Y_test) <- c('col_surv','col_event') 
+    }
   
+  if(glmnetFam %in% c("multinomial", "binomial") ){
+    pred.class <- predict(g1, newx = X_test[, setdiff(colnames(X_test), monov)], s=maxL, type = 'class')
+    pred.out <- data.frame(Y_test,
+                           pred.class,
+                           pred.response,
+                           stringsAsFactors = F, row.names=NULL)
+    colnames(pred.out) <- c(colnames(Y_test),
+                            "pred", paste0("predprob_", colnames(pred.response)))
+  } else {
+    pred.out <- data.frame(Y_test,
+                           pred.response,
+                           stringsAsFactors = F, row.names=NULL)
+    colnames(pred.out) <- c(colnames(Y_test), "pred") ## assuming cox output only contains one column, and also name it 'pred'
+  }
+
   if(is.list(g1$beta)) {
     b1 <- do.call(cbind, g1$beta)
   }else{
     b1 <- g1$beta
   }
   
-  list(features= row.names(b1)[apply(b1, 1, function(x) any(x > 0))], lambda=maxL, pred=pred2) 
+  ## ToDo: temporarily use abs(x) > 0 to extract important features.
+  ## need to use coefficient in the future. 
+  features <- row.names(b1)[apply(b1, 1, function(x) any(abs(x) > 0))]
+  
+  ## if all the coefficients are 0 (no important features)
+  if(length(features)==0){ features <- NA}
+  
+  list(features = features, 
+       lambda = maxL, 
+       pred = pred.out) 
 }
 
 
@@ -142,7 +176,7 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
       pred2 <- data.frame(pred2)
       rownames(pred2) <- rownames(X_test)
       pred2.times <- as.character( pred$time.interest )
-      pred2 <- apply(pred2 , 1, paste, collapse = "," ) ## squash all columns to one single column
+      pred2 <- apply(pred2 , 1, paste, collapse = "," ) ## squeeze all columns to one single column
     }
     
     ## get brier score
@@ -163,6 +197,8 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
     
     df_pred_tmp <- cbind(Y_test, df_pred_tmp)
     ## save surv_prob times, because different CV may have different predicted prob times
+    ## will unlist this information during harvesting
+    ## this is to make the workflow and output format consistent with xgboost
     df_pred_tmp$surv_prob.times = list(pred2.times) 
     
     df_vimp <- rbind(df_vimp, df_vimp_tmp)
