@@ -83,7 +83,7 @@ confm <- function(pred, predprob, ref){
     
     ## get acc and auc (auc is only for binary)
     cf["Accuracy"] <-  acc
-    cf["ROCAUC"] <- auc(roc(ref, predprob))
+    cf["ROCAUC"] <- pROC::auc(roc(ref, predprob))
     
   } else {
     
