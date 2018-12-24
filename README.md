@@ -51,9 +51,18 @@ ToDo: Need to implement proper testing
   how do we quickly compare the performance of the model?)
   
 
+### Currently available analysis engines
+
+1. glmnet for binary, multinomial, gaussian and survival outcomes (lasso.r), based on glmnet
+2. survival random forest (rfeSRCC.r), based on randomforestSRC
+3. xgboost for categorical, gaussian and survival outcomes (XGBoost_xxx.py)
+
 ### Execute
 
-Go to `tests` folder, open sbatch_xxxx.R
+Go to `tests` folder, copy sbatch_xxxx.R to your project folder. This r script 
+1. collects input parameters, including an engine script which may or may not be implemented in R, 
+2. prepares input data file if necessary
+3. splits repeated CV or LOOCV by repeated calling the engine script on different CPU
 
 If it is python engine (e.g. xgboost), remember to use command line (for example):
 
@@ -62,7 +71,7 @@ module load apps/python
 Rscript ~/EVE/tests/sbatch_xgb_regression.R
 ```
 
-If it is R engines, just open sbatch_xxx.R, and then click **Source** in RStudio.
+If it is R engines, just open sbatch_xxx.R, modify to fit your project and then click **Source** in RStudio.
 
 Note: once the job is submitted you will see `log` folder under tests. 
 When job is done, you will see `results` folder containing all outputs files. 
