@@ -6,7 +6,9 @@
 
 ### Clone this repo to your HOME
 
-__currently the paths used in EVE assume users always clone this repo to your unix HOME__
+```diff
+- __currently the paths used in EVE assume users always clone this repo to your unix HOME__
+```
 
 ```console
 ssh rescomp5003.gene.com
