@@ -34,10 +34,10 @@ outF <- paste0(runSpec$outP,
                "_cv", specLocal$cv_id_curr, ".rdata")
 #outF <- paste(runSpec$outP, '/glmnet_', paste(unlist(specLocal), collapse="_"),'.rdata', sep='')
 
-#if( file.exists(outF) && T) { ## what is this T?
-#  print(paste(outF,'already exits. quitting...'))
-#  q()
-#}  
+if( file.exists(outF) && T) { ## what is this T?
+  print(paste(outF,'already exits. quitting...'))
+  q()
+}  
 
 #########################
 ## read & process data ##
@@ -162,7 +162,8 @@ for (cv.idx in cvList){
     df_vimp <- rbind(df_vimp, df_vimp_tmp)
     df_pred <- rbind(df_pred, df_pred_tmp)
     
-  } else if (specLocal$cv_id_curr == cv_id){
+  } else {
+    if (specLocal$cv_id_curr == cv_id){
     print("1 CV per job")
     print(paste("Fold number:", cv_id))
     X_train = x[-cv.idx, featureList, drop=F]
@@ -182,16 +183,18 @@ for (cv.idx in cvList){
                                lambdaChoice = runSpec$lambdaChoice, 
                                w = runSpec$weight.value[-cv.idx])
     
-    df_vimp_tmp <- data.frame("feature" = df.out$features,
+    df_vimp_tmp <- data.frame( df.out$features,
                               "lambda" = df.out$lambda,
                               "cv" = cv_id)
     df_pred_tmp <- df.out$pred
     df_pred_tmp["cv"] <- cv_id
-    df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test) ## add sample ID here
-    
+#    df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test) ## add sample ID here
+    df_pred_tmp[[runSpec$sample_ID]] <- rownames(df_pred_tmp)
+    rownames(df_pred_tmp) <- NULL
     df_vimp <- rbind(df_vimp, df_vimp_tmp)
     df_pred <- rbind(df_pred, df_pred_tmp)
-  }
+    }
+    }
   cv_id <- cv_id + 1
 }
 ## added 'size' column to work with reporting functions

@@ -89,13 +89,15 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
   
   pred.response <- predict(g1, newx = X_test[, setdiff(colnames(X_test), monov)], s=maxL, type = 'response' )
   
-  if(glmnetFam == "binomial" & dim(pred.response)[2] != 2){
-    lbs <- unique(Y_train)
-    lb.exist <- colnames(pred.response)
-    lb.missing <- setdiff(lbs, lb.exist)
+  if(glmnetFam == "binomial" & dim(pred.response)[2] == 1){
+    lbs <- levels(Y_train) # we have verified before that Y_train has to be a factor
+#    lb.exist <- colnames(pred.response)
+#    lb.missing <- setdiff(lbs, lb.exist)
+# it seems pred.response may just have column name of '1' and igore the levels of Y_train    
     pred.response <- cbind(pred.response, (1 - pred.response))
-    colnames(pred.response) <- c(lb.exist, lb.missing)
+    colnames(pred.response) <- rev(lbs) # c(lb.exist, lb.missing)
   }
+  
   ## for survival, change the column back so that it is consistent across different algo.
   if(glmnetFam == "cox") {
     colnames(Y_test) <- c('col_surv','col_event') 
@@ -106,13 +108,13 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     pred.out <- data.frame(Y_test,
                            pred.class,
                            pred.response,
-                           stringsAsFactors = F, row.names=NULL)
+                           stringsAsFactors = F)
     colnames(pred.out) <- c(colnames(Y_test),
                             "pred", paste0("predprob_", colnames(pred.response)))
   } else {
     pred.out <- data.frame(Y_test,
                            pred.response,
-                           stringsAsFactors = F, row.names=NULL)
+                           stringsAsFactors = F)
     colnames(pred.out) <- c(colnames(Y_test), "pred") ## assuming cox output only contains one column, and also name it 'pred'
   }
 
@@ -124,10 +126,19 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
   
   ## ToDo: temporarily use abs(x) > 0 to extract important features.
   ## need to use coefficient in the future. 
-  features <- row.names(b1)[apply(b1, 1, function(x) any(abs(x) > 0))]
+  b1 <- as.matrix(b1)
+  features <- b1[apply(b1, 1, function(x) any(abs(x) > 0)),,drop=F]
+  
+  if(nrow(features) > 0) {
+    features <- data.frame(row.names(features), features, row.names = NULL, stringsAsFactors = F)
+  }else{
+    features <- data.frame(matrix(rep(NA, ncol(b1) + 1), nrow=1))
+  }
+
+  colnames(features) <- c('feature', colnames(b1))  
   
   ## if all the coefficients are 0 (no important features)
-  if(length(features)==0){ features <- NA}
+#  if(nrow(features)==0){ features <- NA}
   
   list(features = features, 
        lambda = maxL, 
