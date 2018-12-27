@@ -148,7 +148,7 @@ for (cv.idx in cvList){
                                glmnetFam = runSpec$family, 
                                a1 = runSpec$alpha, 
                                nCv4lambda = runSpec$nCv4lambda, 
-                               lambdaSum = match.fun(runSpec$lambdaSum), 
+                               lambdaSum = match.fun(runSpec$lambdaSum), runPairs=runSpec$runPairs,
                                lambdaChoice = runSpec$lambdaChoice, 
                                w = runSpec$weight.value[-cv.idx])
     
@@ -179,7 +179,7 @@ for (cv.idx in cvList){
                                glmnetFam = runSpec$family, 
                                a1 = runSpec$alpha, 
                                nCv4lambda = runSpec$nCv4lambda, 
-                               lambdaSum = match.fun(runSpec$lambdaSum), 
+                               lambdaSum = match.fun(runSpec$lambdaSum), runPairs=runSpec$runPairs,
                                lambdaChoice = runSpec$lambdaChoice, 
                                w = runSpec$weight.value[-cv.idx])
     

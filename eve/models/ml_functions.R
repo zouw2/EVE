@@ -18,10 +18,25 @@ findConstantVar <- function(ds){
   monov[!is.na(monov)]
 }  
 
+extractBeta <- function(gObj){
+  stopifnot('glmnet' %in% class(gObj))
+  if(is.list(gObj$beta)) {
+    b1 <- do.call(cbind, gObj$beta)
+    colnames(b1) <- names(gObj$beta)
+  }else{
+    b1 <- gObj$beta
+  }
+  
+  b1 <- as.matrix(b1)
+  b1[apply(b1, 1, function(x) any(abs(x) > 0)),,drop=F]
+}
+
+
 glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
                              seed = 27519, 
                              glmnetFam="binomial", a1=1, 
                              nCv4lambda=10, lambdaSum=mean, 
+                             runPairs=c(),
                              lambdaChoice = 'lambda.min',  w=1, ... ){
   
   set.seed(seed)
@@ -33,6 +48,8 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     #   if (class(Y_test) %in% c('matrix','data.frame'))  Y_test <-  Y_test[, 1]
     stopifnot( is.factor(Y_train) );
     #    stopifnot( is.factor(Y_test) );
+    if (nlevels(Y_train) == 2) stopifnot(glmnetFam %in% 'binomial')
+    if (nlevels(Y_train) > 2) stopifnot(glmnetFam %in% 'multinomial')
     print('training data label counts')
     print(table(Y_train))
   }
@@ -68,9 +85,9 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
   print('dim of training x')
   print(dim(X_train))
   
-  monov <- findConstantVar(X_train)
+  f <- setdiff(colnames(X_train), findConstantVar(X_train))
   
-  x1 <- X_train[, setdiff(colnames(X_train), monov)]
+  x1 <- X_train[, f]
 
   maxL <- lambdaSum( sapply(1:nCv4lambda, function(i) {
     set.seed(seed +100 + i)
@@ -83,12 +100,82 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     
   }) , na.rm = T)
 
+  
   g1 <- glmnet(x=x1, y = (function(yobj){
     if(glmnetFam =='cox') return(Surv(yobj)); 
     return(yobj) })(Y_train),  family = glmnetFam, alpha = a1, lambda=maxL, standardize =T, weights=w, ...)
+
+# features from g1
+  features <- extractBeta(g1) 
+  featureCol <- colnames(features)
+ 
   
-  pred.response <- predict(g1, newx = X_test[, setdiff(colnames(X_test), monov)], s=maxL, type = 'response' )
+# feature select with runPairs
+  subsetFeatures <- c()
+  if(length(runPairs) > 0){
+    stopifnot(glmnetFam %in% "multinomial")
+    
+    pairwiseFeatures <-  lapply(runPairs, function(g){
+      g <- unique(g)
+      
+      print(paste('select features between', paste(g, collapse = ',')))
+      
+      stopifnot(length(g) > 1)
+      
+      if(!all(g %in% levels(Y_train))){
+        print( paste('not all levels from', paste(g, collapse = ','),'are found in this training data; no features will be selected from this comparison'))
+        return(c())
+      }
+      
+      sel2 <- as.character(Y_train) %in% g
+      
+      x2 <- x1[sel2, ]; x2[, setdiff(colnames(x2),  findConstantVar(x2))]
+      y2 <- factor(as.character(Y_train[sel2])); 
+      stopifnot(all(as.character(y2) %in% g));
+      
+      fam2 <- ifelse(length(g) ==2, "binomial", "multinomial")
+      
+      maxL2 <- lambdaSum( sapply(1:nCv4lambda, function(i) {
+        set.seed(seed + 200 + i)
+        r1 <- cv.glmnet(x=x2, y=y2, family=fam2, alpha = a1 , standardize =T, weights = w[sel2], ...)
+        r1[[lambdaChoice]]
+        
+      }) , na.rm = T)
+      
+      g2 <- glmnet(x=x2, y = y2,  family = fam2, alpha = a1, lambda=maxL2, standardize =T, weights = w[sel2], ...)
+      
+      row.names(extractBeta(g2))
+      
+    })
+    
+    subsetFeatures <- unique(do.call(c, pairwiseFeatures))
+  }
   
+  subsetFeatures <- setdiff(subsetFeatures, row.names(features))
+  
+  
+# final prediction  
+  if(length(subsetFeatures) == 0){ # feature selection and outcome prediction will be the same model
+    
+  }else{ # refit a ridge regression and use that model to prediction. Note the coefficient values from this approach are not comparable to the standard glmnet flow
+    print(paste('analyses in subgroups using a subset of labels adds', length(subsetFeatures), 'to plain glmnet selection of', nrow(features),'features'))
+    f <- unique(c( row.names(features), subsetFeatures))
+    
+    maxL3 <- lambdaSum( sapply(1:nCv4lambda, function(i) {
+      set.seed(seed + 300 + i)
+      r1 <- cv.glmnet(x=x1[, f], y=Y_train, family= glmnetFam, alpha =0  , standardize =T, weights=w, ...)
+      r1[[lambdaChoice]]
+      
+    }) , na.rm = T)
+    
+    g1 <- glmnet(x=x1[, f], y = Y_train,  family = glmnetFam, alpha = 0, lambda=maxL3, standardize =T, weights=w, ...)
+    
+    features <- extractBeta(g1)
+    
+  }
+
+  pred.response <- predict(g1, newx = X_test[, f], s=maxL, type = 'response' )
+    
   if(glmnetFam == "binomial" & dim(pred.response)[2] == 1){
     lbs <- levels(Y_train) # we have verified before that Y_train has to be a factor
 #    lb.exist <- colnames(pred.response)
@@ -104,7 +191,7 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     }
   
   if(glmnetFam %in% c("multinomial", "binomial") ){
-    pred.class <- predict(g1, newx = X_test[, setdiff(colnames(X_test), monov)], s=maxL, type = 'class')
+    pred.class <- predict(g1, newx = X_test[, f], s=maxL, type = 'class')
     pred.out <- data.frame(Y_test,
                            pred.class,
                            pred.response,
@@ -118,24 +205,16 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     colnames(pred.out) <- c(colnames(Y_test), "pred") ## assuming cox output only contains one column, and also name it 'pred'
   }
 
-  if(is.list(g1$beta)) {
-    b1 <- do.call(cbind, g1$beta)
-  }else{
-    b1 <- g1$beta
-  }
-  
-  ## ToDo: temporarily use abs(x) > 0 to extract important features.
-  ## need to use coefficient in the future. 
-  b1 <- as.matrix(b1)
-  features <- b1[apply(b1, 1, function(x) any(abs(x) > 0)),,drop=F]
+
+  # prepare feature matrix
   
   if(nrow(features) > 0) {
     features <- data.frame(row.names(features), features, row.names = NULL, stringsAsFactors = F)
   }else{
-    features <- data.frame(matrix(rep(NA, ncol(b1) + 1), nrow=1))
+    features <- data.frame(matrix(rep(NA, ncol(features) + 1), nrow=1))
   }
 
-  colnames(features) <- c('feature', colnames(b1))  
+  colnames(features) <- c('feature', featureCol)  
   
   ## if all the coefficients are 0 (no important features)
 #  if(nrow(features)==0){ features <- NA}
