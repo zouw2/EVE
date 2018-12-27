@@ -43,6 +43,9 @@ runSpec <- list(
 #######################
 
 ## modify data
+# In this section, users are supposed to scale numeric features (if necessary); dummify categorical variables ; to provide weight values for each observation.
+
+#Users do not have to remove features with constant values or missing values; they are removed implicitly in the current implementation.
 
 #######################
 ## End of User Input ##
