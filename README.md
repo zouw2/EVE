@@ -66,14 +66,8 @@ Go to `tests` folder, copy sbatch_xxxx.R to your project folder. This r script
 2. prepares input data file if necessary
 3. splits repeated CV or LOOCV by repeated calling the engine script on different CPU
 
-If it is python engine (e.g. xgboost), remember to use command line (for example):
-
-```console
-module load apps/python
-Rscript ~/EVE/tests/sbatch_xgb_regression.R
-```
-
-If it is R engines, just open sbatch_xxx.R, modify to fit your project and then click **Source** in RStudio.
+Open sbatch_xxx.R, modify to fit your project and then click **Source** in RStudio. 
+It can now work for both R and Python engines. 
 
 Note: once the job is submitted you will see `log` folder under tests. 
 When job is done, you will see `results` folder containing all outputs files. 
