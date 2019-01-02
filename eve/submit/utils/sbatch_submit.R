@@ -85,7 +85,6 @@ sbatch_submit <- function(runSpec){
     capture.output(print(runSpec), 
                    file = paste0(log_path, '/metainfo.txt'))
     save(runSpec, file=paste0(log_path, '/metainfo.Rdata'))
-    system("module load apps/python")
     
   } else if(grepl("r$|R$", runSpec$engine)){
     save(runSpec, file=paste0(log_path, '/metainfo.Rdata'))
