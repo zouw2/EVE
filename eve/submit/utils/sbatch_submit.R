@@ -108,7 +108,8 @@ sbatch_submit <- function(runSpec){
         
         ## create batch file command
         command <- generate_cmd(runSpec, curr_seed, cv, file_run, file_cmd)
-        system(command)
+        system(paste0("module load apps/python
+                    ", command))
       }
     }
     print(paste0(runSpec$num_seeds*cv, " jobs submitted!"))
@@ -123,7 +124,8 @@ sbatch_submit <- function(runSpec){
       
       ## create batch file command
       command <- generate_cmd(runSpec, curr_seed, cv, file_run, file_cmd)
-      system(command)
+      system(paste0("module load apps/python
+                    ", command))
     }
     print(paste0(runSpec$num_seeds, " jobs submitted!"))
   }
