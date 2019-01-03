@@ -66,6 +66,8 @@ Go to `tests` folder, copy sbatch_xxxx.R to your project folder. This r script
 2. prepares input data file if necessary
 3. splits repeated CV or LOOCV by repeated calling the engine script on different CPU
 
+For more definition of user inputs in sbatch_xxx.R, please see [here](https://docs.google.com/spreadsheets/d/1OAmZDae7MF9NXBBwR6YpHjLxbUVFbFw7_y6HzFJegHY/edit#gid=0).
+
 Open sbatch_xxx.R, modify to fit your project and then click **Source** in RStudio. 
 It can now work for both R and Python engines. 
 
