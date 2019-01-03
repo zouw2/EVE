@@ -85,7 +85,6 @@ sbatch_submit <- function(runSpec){
     capture.output(print(runSpec), 
                    file = paste0(log_path, '/metainfo.txt'))
     save(runSpec, file=paste0(log_path, '/metainfo.Rdata'))
-    system("module load apps/python")
     
   } else if(grepl("r$|R$", runSpec$engine)){
     save(runSpec, file=paste0(log_path, '/metainfo.Rdata'))
@@ -108,7 +107,8 @@ sbatch_submit <- function(runSpec){
         
         ## create batch file command
         command <- generate_cmd(runSpec, curr_seed, cv, file_run, file_cmd)
-        system(command)
+        system(paste0("module load apps/python
+                    ", command))
       }
     }
     print(paste0(runSpec$num_seeds*cv, " jobs submitted!"))
@@ -123,7 +123,8 @@ sbatch_submit <- function(runSpec){
       
       ## create batch file command
       command <- generate_cmd(runSpec, curr_seed, cv, file_run, file_cmd)
-      system(command)
+      system(paste0("module load apps/python
+                    ", command))
     }
     print(paste0(runSpec$num_seeds, " jobs submitted!"))
   }
