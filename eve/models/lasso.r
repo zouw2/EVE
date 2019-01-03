@@ -34,7 +34,7 @@ outF <- paste0(runSpec$outP,
                "_cv", specLocal$cv_id_curr, ".rdata")
 #outF <- paste(runSpec$outP, '/glmnet_', paste(unlist(specLocal), collapse="_"),'.rdata', sep='')
 
-if( file.exists(outF) && T) { ## what is this T?
+if( file.exists(outF) && T) {
   print(paste(outF,'already exits. quitting...'))
   q()
 }  
@@ -197,9 +197,11 @@ for (cv.idx in cvList){
     }
   cv_id <- cv_id + 1
 }
+
 ## added 'size' column to work with reporting functions
-## note: the 'size' in Lasso is not meaningful.
-## the 'lambda' values is more meaningful, larger lambda correspond to smaller feature size
+## note: plotting performance against # of feature retained is not meaningful for lasso.
+## note: size for lasso is just the total # of features in the input matrix
+
 df_vimp$size <- dim(x)[2]
 df_pred$size <- dim(x)[2]
 
