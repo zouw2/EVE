@@ -31,7 +31,8 @@ pip install --user -r requirements.txt
 
 If you will use **R**:
 
-Open [RStudio on rescomp](http://rescomp5105.gene.com:8080), then:
+Open [RStudio on rescomp](http://rescomp5105.gene.com:8080), 
+make sure you are using **R 3.5.1** or above, then:
 
 ```r
 pkgs <- c("prodlim", "survival", "survminer", "glmnet", "pec", 
