@@ -1,6 +1,6 @@
 # EVE
 
-[![](https://img.shields.io/github/release/qubyte/rubidium.svg)](https://github.roche.com/ED-EB/EVE)
+[![GitHub repo version](https://img.shields.io/github/release/qubyte/rubidium.svg)](https://github.roche.com/ED-EB/EVE)
 
 # Getting started
 
