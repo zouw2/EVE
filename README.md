@@ -1,6 +1,6 @@
 # EVE
 
-[![GitHub repo version](https://img.shields.io/github/release/badges/shields.svg)](https://github.roche.com/ED-EB/EVE)
+[![GitHub repo version](https://img.shields.io/badge/release-v0.1-blue.svg)](https://github.roche.com/ED-EB/EVE)
 
 # Getting started
 
