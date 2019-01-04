@@ -53,6 +53,13 @@ if(is.na(runSpec$sample_ID)|is.null(runSpec$sample_ID)|(runSpec$sample_ID=="")){
   stopifnot(!any(duplicated(as.character(df[[runSpec$sample_ID]]))))
 }
 
+if(is.na(runSpec$weight_col) | is.null(runSpec$weight_col) | (runSpec$weight_col=="")){
+  runSpec$weight.value <- rep(1, nrow(df))
+}else{
+  stopifnot(runSpec$weight_col %in% colnames(df))
+  runSpec$weight.value <- df[, runSpec$weight_col]
+}
+
 if (runSpec$family %in%  'cox') {
   stopifnot(all(c(  runSpec$surv_col, runSpec$event_col) %in% colnames(df)))
   y <- data.matrix( df[,c(runSpec$surv_col, runSpec$event_col)] )
@@ -70,8 +77,12 @@ if (runSpec$family %in% c("gaussian")) {
   y <- df[, runSpec$label_name, drop=F] # y will be handled similarly for cox and categorical outcome
 }  
 
+if(any(is.na(as.vector(y)))){
+  print(paste('there are', sum(is.na(as.vector(y))),'missing values in the outcome data file'))
+}
+
 col2drop <- c(runSpec$label_name, runSpec$sample_ID,
-              runSpec$surv_col,   runSpec$event_col)
+              runSpec$surv_col,   runSpec$event_col, runSpec$weight_col)
 
 x <- data.matrix( df[,!(colnames(df) %in% col2drop)] ) ## why data.matrix not data.frame
 

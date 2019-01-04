@@ -25,6 +25,8 @@ extractBeta <- function(gObj){
     colnames(b1) <- names(gObj$beta)
   }else{
     b1 <- gObj$beta
+    stopifnot(ncol(b1) == 1)
+    colnames(b1) <- 'vimp' #to work with reporting program
   }
   
   b1 <- as.matrix(b1)
