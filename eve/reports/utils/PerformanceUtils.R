@@ -453,12 +453,14 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, bin=30){
     group_by(seed, feature) %>% 
     summarise(sum_vimp = sum(vimp, na.rm = T)) %>% 
     group_by(feature) %>% 
-    summarise(vimp.avg = mean(sum_vimp, na.rm = T)) 
+    summarise(vimp.avg = mean(sum_vimp, na.rm = T)) %>% 
+    mutate(sign = ifelse(vimp.avg>=0, "pos", "neg"), ## this is for lasso's coefficient which may contain negative values
+           vimp.avg.abs = abs(vimp.avg))
   
   df.top.f <- df.vimp.scores %>% 
     arrange(desc(vimp.avg)) %>% 
     slice(1:top_n) %>% 
-    arrange(vimp.avg) ## this is to plot the vimp from top-down
+    arrange(vimp.avg.abs) ## this is to plot the vimp from top-down
   
   plt1 <- ggplot(df.vimp.scores, aes(x=vimp.avg)) + 
     geom_histogram(color="black", fill="white", bins=50) +
@@ -467,9 +469,10 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, bin=30){
     xlab("average (across seeds) of vimp (sum of all CVs per seed)") +
     ggtitle(paste("with", ft_num, "features based on vimp"))
   
-  plt2 <- ggplot(df.top.f, aes(x=feature, y=vimp.avg)) +
-    geom_bar(stat="identity") +
+  plt2 <- ggplot(df.top.f, aes(x=feature, y=vimp.avg, fill=sign)) +
+    geom_bar(stat="identity", alpha=0.7) +
     scale_x_discrete(limits=df.top.f$feature) +
+    scale_fill_manual(values=c("#999999", "#000000")) +
     coord_flip() +
     theme_bw() +
     ylab("Feature Importance") +
