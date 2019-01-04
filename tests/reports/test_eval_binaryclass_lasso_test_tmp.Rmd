@@ -1,0 +1,104 @@
+---
+title: "Evaluate testing data (binary-class) - Lasso"
+author: "Andrew Chang"
+date: '`r Sys.Date()`'
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+This is a temporarily template for Wei's PCD study result. 
+
+
+```{r}
+## user input
+project_home <- "/gnet/ais1/p04/shares/OBD/PDL1mab/pcd4989g/massspec"
+project_name <- "lasso_binary_biodesix"
+```
+
+
+## 0. Load Data
+```{r, warning=TRUE, message=TRUE, echo=FALSE}
+library(tidyverse)
+library(broom)
+library(caret)
+library(pROC)
+source("~/EVE/eve/reports/utils/PerformanceUtils.R")
+load(paste0(project_home,"/log/", project_name, "/metainfo.Rdata"))
+
+if(grepl("\\.r$|\\.R$", runSpec$engine)){
+  df.preval <- getResults(project_home, project_name, "rdata", objName = "df_pred")
+  df.vimp   <- getResults(project_home, project_name, "rdata", objName = "df_vimp")
+} else {
+  df.preval <- getResults(project_home, project_name, "prevalidation")
+  df.vimp   <- getResults(project_home, project_name, "vimp")
+}
+
+## get original data info
+df.orig <- read_csv(paste(project_home, runSpec$training_data, sep="/"))
+
+tot.sample <- dim(df.orig)[1]
+tot.feature <- max(df.preval$size)
+num.cv <- length(unique(df.preval$cv))
+num.seed <- length(unique(df.preval$seed))
+
+cat(tot.sample, "of samples were used \n")
+cat(tot.feature, "of full features\n")
+cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
+cat("Labels:\n")
+table(df.orig[[runSpec$label_name]])
+```
+
+
+## 1. Scores
+
+```{r, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+plt <- plotScores(df.preval, runSpec$label_name)
+plt$byClass +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+```{r, echo=FALSE}
+plt$overall +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+
+
+## 2. Important Features
+
+For Lasso, we calculate how many times a given features is being used in all the runs.
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+main <- paste('distribution across', length(unique(df.vimp$seed)), 'seed x', length(unique(df.vimp$cv)),'CV')
+xlab <- paste('# of times a feature is selected by lasso (alpha=', runSpec$alpha,')')
+hist(table(df.vimp$feature), main = main , xlab = xlab)
+```
+
+```{r, fig.height=6, echo=FALSE}
+par(mar=c(5,20,4,2))
+barplot(tail(sort(table(df.vimp$feature)), 20), 
+        horiz =T, las=2, main='most used features')
+```
+
+```{r}
+## temporarily hack to convert 's0' to 'vimp'. 
+## Because the plotVIMP2 function only recognize 'vimp' column name.
+colnames(df.vimp) <- gsub("s0", "vimp", colnames(df.vimp))
+
+df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 20)
+## plot
+df.vimp.plt$plt.dist.f +
+  ggtitle("Distribution of Feature Coefficient")
+df.vimp.plt$plt.fts.f +
+  ggtitle("Top Features")
+```
+
+
+
+
