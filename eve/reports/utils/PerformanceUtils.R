@@ -22,7 +22,7 @@ read_rdata <- function(filepath, objName){
 #' 
 #' @param project_home path to the project_home foler
 #' @param project_name name of the project folder
-#' @param type indicate the parser to parse 'error', 'vimp', or 'gridsearch'
+#' @param type indicate the parser to parse 'error', 'vimp', 'gridsearch', or 'rdata' which contains df_pred and df_vimp objeects
 #' @param objName (optional) For read_rdata; and possible values are df_pred or df_vimp
 #' 
 getResults <- function(project_home, project_name, type, objName = NULL){
@@ -31,8 +31,10 @@ getResults <- function(project_home, project_name, type, objName = NULL){
   
   newfiles <- list.files(path=Path2Results)
   idx <- grepl(type, newfiles)
+  idx_datatype <- grepl("\\.rdata$|\\.csv$", newfiles) ## only collect either .rdata or .csv files in that folder
   
-  files <- newfiles[idx] 
+  files <- newfiles[idx & idx_datatype] ## only collect either .rdata or .csv files in that folder
+  #files <- newfiles[idx] 
   seed.num <- sapply(files, function(x) gsub(".*_seed|_cv.*", "", x))
   seed.num <- as.numeric(unname(seed.num))
   
