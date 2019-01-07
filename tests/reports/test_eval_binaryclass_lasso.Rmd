@@ -1,5 +1,5 @@
 ---
-title: "Evaluate testing data (multi-class) - Lasso"
+title: "Evaluate testing data (binary-class) - Lasso"
 author: "Andrew Chang"
 date: '`r Sys.Date()`'
 output:
@@ -61,31 +61,24 @@ table(df.orig[[runSpec$label_name]])
 
 ## 1. Scores
 
-`average = T`: scores are based on pre-validation (combine predictions from all CVs per job and then calculate a single score per job). 
-
-`average = F`: report all the scores from each CV across entire jobs. 
-
-Note: '# of feature retain' is not meaningful in this setup. It is just the total number of features. 
-The RFE concept is cooked into 'lambda' optimization, 
-and each CV may have different lambda values, 
-so it makes comparing prevalidation scores at different lambda difficult.
-
 ```{r, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
 plt <- plotScores(df.preval, runSpec$label_name)
 plt$byClass +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
 ```
 
 ```{r, echo=FALSE}
 plt$overall +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
 ```
 
 
 
 ## 2. Important Features
-
-For Lasso, we calculate how many times a given features is being used in all the runs.
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 main <- paste('distribution across', length(unique(df.vimp$seed)), 'seed x', length(unique(df.vimp$cv)),'CV')
@@ -99,6 +92,14 @@ barplot(tail(sort(table(df.vimp$feature)), 20),
         horiz =T, las=2, main='most used features')
 ```
 
+```{r}
+df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 20)
+## plot
+df.vimp.plt$plt.dist.f +
+  ggtitle("Distribution of Feature Coefficient")
+df.vimp.plt$plt.fts.f +
+  ggtitle("Top Features")
+```
 
 
 

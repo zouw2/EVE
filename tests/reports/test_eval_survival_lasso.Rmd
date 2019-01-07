@@ -61,9 +61,11 @@ cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
 ### 1.1 uncalibrated average
 
 ```{r, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
-plt <- plotHR(df.preval, average = TRUE)
+plt <- plotHR(df.preval)
 plt$overall +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
 ```
 
 
@@ -78,8 +80,6 @@ ggsurvplot(fit1, data = df.in, pval = TRUE)
 
 ## 2. Important Features
 
-For Lasso, we calculate how many times a given features is being used in all the runs.
-
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 main <- paste('distribution across', length(unique(df.vimp$seed)), 'seed x', length(unique(df.vimp$cv)),'CV')
 xlab <- paste('# of times a feature is selected by lasso (alpha=', runSpec$alpha,')')
@@ -92,7 +92,14 @@ barplot(tail(sort(table(df.vimp$feature)), 20),
         horiz =T, las=2, main='most used features')
 ```
 
-
+```{r}
+df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 20)
+## plot
+df.vimp.plt$plt.dist.f +
+  ggtitle("Distribution of Feature Coefficient")
+df.vimp.plt$plt.fts.f +
+  ggtitle("Top Features")
+```
 
 
 

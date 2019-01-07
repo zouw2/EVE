@@ -11,7 +11,7 @@ runSpec <- list(
 
   project_home = "~/EVE/tests",
   engine = "lasso.r",
-  project_name = "lasso_binary_outCV_test2",  
+  project_name = "lasso_binary_outCV_test",  
   training_data = "data/test_binaryclass_tcga_brca.csv", 
   label_name = "pam50_RNAseq", #"pam50_RNAseq", 
   sample_ID = "Patient_ID", 
