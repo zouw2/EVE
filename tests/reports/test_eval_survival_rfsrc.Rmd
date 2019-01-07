@@ -53,25 +53,12 @@ cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
 
 ## 1. Scores
 
-`average = T`: scores are based on pre-validation (combine predictions from all CVs per job and then calculate a single score per job). 
-
-`average = F`: report all the scores from each CV across entire jobs. 
-
-`Brier`: currently only works for rfsrc engine
-
-
 ```{r, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
-plt <- plotHR(df.preval, average = T, Brier = T)
+plt <- plotHR(df.preval)
 plt$overall +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
-```{r, echo=FALSE}
-err1 <- data.frame(plt$df.scores)
-smoothScatter(err1[, 'cindex'], err1[,'BrierScore'], 
-              main=paste('pearson corr:', round(cor(err1[, 'cindex'], err1[,'BrierScore']), 2) ))
-lines(lowess(err1[, 'cindex'], err1[,'BrierScore']), col = 'green')
-```
 
 ```{r, echo=FALSE}
 df.in <- df.preval %>% 
@@ -85,7 +72,7 @@ ggsurvplot(fit1, data = df.in, pval = TRUE)
 ## 2. Important Features
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
-df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, ft_num = 50)
+df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, ft_num = 50, ignore_neg = T)
 df <- df.vimp
 ## plot
 df.vimp.plt$plt.dist.f
