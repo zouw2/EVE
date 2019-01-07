@@ -89,11 +89,13 @@ hist(table(df.vimp$feature), main = main , xlab = xlab)
 ```{r, fig.height=6, echo=FALSE}
 par(mar=c(5,20,4,2))
 barplot(tail(sort(table(df.vimp$feature)), 20), 
-        horiz =T, las=2, main='most used features')
+        horiz =T, las=2, main='Number of times a feature is used')
 ```
+(currently only Lasso has this graph)
+
 
 ```{r}
-df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 20)
+df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 10)
 ## plot
 df.vimp.plt$plt.dist.f +
   ggtitle("Distribution of Feature Coefficient")
