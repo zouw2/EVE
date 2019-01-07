@@ -21,8 +21,8 @@ runSpec <- list(
   num_CV = 3, # -1 for LOOCV
   RFE_step = 10, 
   
-  ## change the weight of positive label
-  weight.var = NA, 
+  ## colname for the weights
+  weight_col = NA, 
   
   split_CVs = T,
   queue_priority = "short", ## short, medium, long

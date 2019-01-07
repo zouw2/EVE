@@ -16,7 +16,7 @@ runSpec <- list(
 
   project_home = "~/EVE/tests",
   engine = "lasso.r", ## ML engine
-  project_name = "lasso_multi_outCV_test",  
+  project_name = "lasso_multi_outCV_test2",  
   training_data = "data/test_multiclass_tcga_brca.csv", 
   label_name = "pam50_RNAseq", #"pam50_RNAseq", 
   sample_ID = "Patient_ID", 
@@ -26,8 +26,8 @@ runSpec <- list(
   num_CV = 3, # -1 for LOOCV
   RFE_step = 10, 
   
-  ## change the weight of positive label
-  weight.var = NA, 
+  ## colname for the weights
+  weight_col = NA, 
   
   split_CVs = T,
   queue_priority = "short", ## short, medium, long
