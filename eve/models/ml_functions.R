@@ -76,6 +76,7 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
       print(paste("Drop", sum(idx2drop), "samples with survival time = 0."))
       Y_train <- Y_train[!idx2drop, ]
       X_train <- X_train[!idx2drop, ]
+      w <- w[!idx2drop] ## drop the weights associated with those samples as well
     }
   }
   
