@@ -29,7 +29,7 @@ runSpec <- list(
   RFE_step = 10, 
   
   ## change the weight of positive label
-  weight.var = NA, 
+  weight_col = NA, 
   
   split_CVs = F,
   queue_priority = "short", ## short, medium, long
