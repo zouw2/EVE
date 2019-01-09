@@ -88,7 +88,7 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
   }else{
     if(glmnetFam %in% c("multinomial", "binomial")){
     print('weight distribution by outcome levels')
-    table(w,Y_train)
+    print(table(w,Y_train))
     }
   }
   

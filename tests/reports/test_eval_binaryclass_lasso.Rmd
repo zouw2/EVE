@@ -90,6 +90,12 @@ xlab <- paste('# of times a feature is selected by lasso (alpha=', runSpec$alpha
 hist(table(df.vimp$feature), main = main , xlab = xlab)
 ```
 
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+
+with(as.data.frame(df.vimp), hist(table(paste(cv, seed)), xlab = 'number of retained features in one run', main=paste('summary of model size across', length(unique(paste(cv, seed))),'runs')))
+
+```
+
 ```{r, fig.height=6, echo=FALSE}
 par(mar=c(5,20,4,2))
 barplot(tail(sort(table(df.vimp$feature)), 20), 
