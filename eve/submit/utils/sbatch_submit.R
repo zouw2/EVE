@@ -129,3 +129,45 @@ sbatch_submit <- function(runSpec){
     print(paste0(runSpec$num_seeds, " jobs submitted!"))
   }
 }
+
+
+# impute missing values in the full data
+imputeWithSummaryStat <- function(dsin, FUN=median, flag.var = '_F'){
+    stopifnot(is.data.frame(dsin))
+    m1 <- sapply(names(dsin), function(x) sum(is.na(dsin[[x]])))
+    m1 <- m1[m1> 0]
+
+    print(paste('imputing', length(m1), 'variables from', deparse(substitute(dsin)), 'with per variable', deparse(substitute(FUN))))
+
+for (v in names(m1)) {
+    stopifnot(v %in% colnames(dsin))
+    sel <- is.na(dsin[[v]])
+    
+    if(is.numeric(dsin[[v]])){
+        s1 <- FUN(dsin[!sel, v])
+        if(is.integer(dsin[[v]])) {
+            s1 <- as.integer(round(s1))
+        }
+        stopifnot(!is.na(s1))
+        print(paste('imputing', sum(sel),'missing', v,'with', round( s1, 2),', estimated from', sum(!sel),'observed values'))
+        dsin[sel, v] <- s1
+    }else{
+        if(is.factor(dsin[[v]])) dsin[[v]] <- as.character(dsin[[v]])
+        if(is.character(dsin[[v]])) {
+        print(paste('set', sum(sel),'missing', v,'as UNK'))
+        dsin[sel, v] <- 'UNK'
+        }else{
+            stop(paste('do not know how to handle variable', v,'as a', class(dsin[[v]])))
+        }
+    }
+    
+    if(!is.na(flag.var) && nchar(flag.var) > 0 ){ # create a flag variable
+        f1 <- paste(v, flag.var, sep='')
+        assertthat::assert_that(!f1 %in% colnames(dsin), msg = paste(f1, 'a flag variable to indicate missingness is already in the data matrix'))
+        
+        dsin[[f1]] <- as.integer(sel)
+    }
+    
+}
+    dsin
+}
