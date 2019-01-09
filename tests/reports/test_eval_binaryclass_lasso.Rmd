@@ -10,15 +10,9 @@ output:
 
 Note: The two differences between Lasso and Tree-based methods are:
 
-1. Lasso does not output 'size', so the "number of feature used"" to train the model is not informative. 
-Should check 'lambda' which is correspond to the number of features used.
-
-2. Lasso's vimp will be based on how many times the feature exist in all runs. 
-
-Labels: 
-  0: Basal
-  1: LumA
-
+1. Lasso has its own inherent feature selection process.
+2. Lasso's vimp will be based on how many times the feature exist in all runs. Regression coefficients may be presented for binary outcomes
+ 
 
 ```{r}
 ## user input
@@ -56,6 +50,16 @@ cat(tot.feature, "of full features\n")
 cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
 cat("Labels:\n")
 table(df.orig[[runSpec$label_name]])
+
+if( !is.na(runSpec$weight_col) && nchar(runSpec$weight_col) && runSpec$weight_col %in% colnames(df.orig)){
+  print('summary of weigths')
+  if(runSpec$family %in% c("multinomial", "binomial")){
+    table(df.orig[[runSpec$label_name]], df.orig[[runSpec$weight_col]], useNA='ifany')
+  }else{
+    summary(df.orig[[runSpec$weight_col]])
+  }
+}
+
 ```
 
 
