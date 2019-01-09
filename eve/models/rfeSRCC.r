@@ -48,7 +48,7 @@ if(is.na(runSpec$sample_ID)|is.null(runSpec$sample_ID)|(runSpec$sample_ID=="")){
 }
 
 col2drop <- c(runSpec$label_name, runSpec$sample_ID,
-              runSpec$surv_col,   runSpec$event_col)
+              runSpec$surv_col,   runSpec$event_col, runSpec$weight_col)
 
 x <- df[,!(colnames(df) %in% col2drop)]
 y <- df[,c(runSpec$surv_col, runSpec$event_col)]
