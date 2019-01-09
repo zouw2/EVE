@@ -69,9 +69,12 @@ plt$overall +
 ```
 
 
+The following plot is to quickly see how well the prediction can separate long and short survivor. 
 ```{r, echo=FALSE}
+seed <- min(df.preval$seed) ## default chooses smaller seed.
+
 df.in <- df.preval %>% 
-  filter(seed==1001) %>% # seed==1001
+  filter(seed==seed) %>% # seed==1001
   mutate(pred.binary = ifelse(pred < median(pred), 1, 0))
 
 fit1 <- survfit(Surv(col_surv, col_event) ~ pred.binary, data = df.in)
