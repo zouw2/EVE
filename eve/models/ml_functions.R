@@ -18,18 +18,21 @@ findConstantVar <- function(ds){
   monov[!is.na(monov)]
 }  
 
-extractBeta <- function(gObj){
+extractBeta <- function(gObj, lambda){
   stopifnot('glmnet' %in% class(gObj))
-  if(is.list(gObj$beta)) {
-    b1 <- do.call(cbind, gObj$beta)
-    colnames(b1) <- names(gObj$beta)
+  b0 <-   coef(gObj, lambda) 
+
+  if(is.list(b0)) {
+    b1 <- do.call(cbind, b0)
+    colnames(b1) <- names(b0)
   }else{
-    b1 <- gObj$beta
+    b1 <- b0
     stopifnot(ncol(b1) == 1)
     colnames(b1) <- 'vimp' #to work with reporting program
   }
-  
+
   b1 <- as.matrix(b1)
+  b1 <- b1[setdiff(row.names(b1), "(Intercept)"), ,drop=F]
   b1[apply(b1, 1, function(x) any(abs(x) > 0)),,drop=F]
 }
 
@@ -106,10 +109,10 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
   
   g1 <- glmnet(x=x1, y = (function(yobj){
     if(glmnetFam =='cox') return(Surv(yobj)); 
-    return(yobj) })(Y_train),  family = glmnetFam, alpha = a1, lambda=maxL, standardize =T, weights=w, ...)
+    return(yobj) })(Y_train),  family = glmnetFam, alpha = a1,  standardize =T, weights=w, ...)
 
 # features from g1
-  features <- extractBeta(g1) 
+  features <- extractBeta(g1, lambda=maxL) 
   featureCol <- colnames(features)
  
   
@@ -145,9 +148,9 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
         
       }) , na.rm = T)
       
-      g2 <- glmnet(x=x2, y = y2,  family = fam2, alpha = a1, lambda=maxL2, standardize =T, weights = w[sel2], ...)
+      g2 <- glmnet(x=x2, y = y2,  family = fam2, alpha = a1, standardize =T, weights = w[sel2], ...)
       
-      row.names(extractBeta(g2))
+      row.names(extractBeta(g2, lambda=maxL2 ))
       
     })
     
@@ -164,16 +167,16 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     print(paste('analyses in subgroups using a subset of labels adds', length(subsetFeatures), 'to plain glmnet selection of', nrow(features),'features'))
     f <- unique(c( row.names(features), subsetFeatures))
     
-    maxL3 <- lambdaSum( sapply(1:nCv4lambda, function(i) {
+    maxL  <- lambdaSum( sapply(1:nCv4lambda, function(i) {
       set.seed(seed + 300 + i)
-      r1 <- cv.glmnet(x=x1[, f], y=Y_train, family= glmnetFam, alpha =0  , standardize =T, weights=w, ...)
+      r1 <- cv.glmnet(x=x1[, f], y=Y_train, family= glmnetFam, alpha = 0  , standardize =T, weights=w, ...)
       r1[[lambdaChoice]]
       
     }) , na.rm = T)
     
-    g1 <- glmnet(x=x1[, f], y = Y_train,  family = glmnetFam, alpha = 0, lambda=maxL3, standardize =T, weights=w, ...)
+    g1 <- glmnet(x=x1[, f], y = Y_train,  family = glmnetFam, alpha = 0, standardize =T, weights=w, ...)
     
-    features <- extractBeta(g1)
+    features <- extractBeta(g1, lambda=maxL)
     
   }
 
