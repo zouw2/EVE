@@ -53,7 +53,7 @@ if(is.na(runSpec$sample_ID)|is.null(runSpec$sample_ID)|(runSpec$sample_ID=="")){
   stopifnot(!any(duplicated(as.character(df[[runSpec$sample_ID]]))))
 }
 
-if(is.na(runSpec$weight_col) | is.null(runSpec$weight_col) | (runSpec$weight_col=="")){
+if( is.null(runSpec$weight_col) || is.na(runSpec$weight_col) || runSpec$weight_col==""){
   runSpec$weight.value <- rep(1, nrow(df))
 }else{
   stopifnot(runSpec$weight_col %in% colnames(df))

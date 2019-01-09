@@ -18,18 +18,21 @@ findConstantVar <- function(ds){
   monov[!is.na(monov)]
 }  
 
-extractBeta <- function(gObj){
+extractBeta <- function(gObj, lambda){
   stopifnot('glmnet' %in% class(gObj))
-  if(is.list(gObj$beta)) {
-    b1 <- do.call(cbind, gObj$beta)
-    colnames(b1) <- names(gObj$beta)
+  b0 <-   coef(gObj, lambda) 
+
+  if(is.list(b0)) {
+    b1 <- do.call(cbind, b0)
+    colnames(b1) <- names(b0)
   }else{
-    b1 <- gObj$beta
+    b1 <- b0
     stopifnot(ncol(b1) == 1)
     colnames(b1) <- 'vimp' #to work with reporting program
   }
-  
+
   b1 <- as.matrix(b1)
+  b1 <- b1[setdiff(row.names(b1), "(Intercept)"), ,drop=F]
   b1[apply(b1, 1, function(x) any(abs(x) > 0)),,drop=F]
 }
 
@@ -82,7 +85,13 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
   
   if (is.null(w)){ ## if no weight vector is given
     w = rep(1, dim(X_train)[1])
+  }else{
+    if(glmnetFam %in% c("multinomial", "binomial")){
+    print('weight distribution by outcome levels')
+    print(table(w,Y_train))
+    }
   }
+  
   print(paste('alpha=', a1))
   
   print('dim of training x')
@@ -106,10 +115,10 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
   
   g1 <- glmnet(x=x1, y = (function(yobj){
     if(glmnetFam =='cox') return(Surv(yobj)); 
-    return(yobj) })(Y_train),  family = glmnetFam, alpha = a1, lambda=maxL, standardize =T, weights=w, ...)
+    return(yobj) })(Y_train),  family = glmnetFam, alpha = a1,  standardize =T, weights=w, ...)
 
 # features from g1
-  features <- extractBeta(g1) 
+  features <- extractBeta(g1, lambda=maxL) 
   featureCol <- colnames(features)
  
   
@@ -145,9 +154,9 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
         
       }) , na.rm = T)
       
-      g2 <- glmnet(x=x2, y = y2,  family = fam2, alpha = a1, lambda=maxL2, standardize =T, weights = w[sel2], ...)
+      g2 <- glmnet(x=x2, y = y2,  family = fam2, alpha = a1, standardize =T, weights = w[sel2], ...)
       
-      row.names(extractBeta(g2))
+      row.names(extractBeta(g2, lambda=maxL2 ))
       
     })
     
@@ -164,20 +173,20 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     print(paste('analyses in subgroups using a subset of labels adds', length(subsetFeatures), 'to plain glmnet selection of', nrow(features),'features'))
     f <- unique(c( row.names(features), subsetFeatures))
     
-    maxL3 <- lambdaSum( sapply(1:nCv4lambda, function(i) {
+    maxL  <- lambdaSum( sapply(1:nCv4lambda, function(i) {
       set.seed(seed + 300 + i)
-      r1 <- cv.glmnet(x=x1[, f], y=Y_train, family= glmnetFam, alpha =0  , standardize =T, weights=w, ...)
+      r1 <- cv.glmnet(x=x1[, f,drop=F], y=Y_train, family= glmnetFam, alpha = 0  , standardize =T, weights=w, ...)
       r1[[lambdaChoice]]
       
     }) , na.rm = T)
     
-    g1 <- glmnet(x=x1[, f], y = Y_train,  family = glmnetFam, alpha = 0, lambda=maxL3, standardize =T, weights=w, ...)
+    g1 <- glmnet(x=x1[, f,drop=F], y = Y_train,  family = glmnetFam, alpha = 0, standardize =T, weights=w, ...)
     
-    features <- extractBeta(g1)
+    features <- extractBeta(g1, lambda=maxL)
     
   }
 
-  pred.response <- predict(g1, newx = X_test[, f], s=maxL, type = 'response' )
+  pred.response <- predict(g1, newx = X_test[, f,drop=F], s=maxL, type = 'response' )
     
   if(glmnetFam == "binomial" & dim(pred.response)[2] == 1){
     lbs <- levels(Y_train) # we have verified before that Y_train has to be a factor
@@ -194,7 +203,7 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     }
   
   if(glmnetFam %in% c("multinomial", "binomial") ){
-    pred.class <- predict(g1, newx = X_test[, f], s=maxL, type = 'class')
+    pred.class <- predict(g1, newx = X_test[, f,drop=F], s=maxL, type = 'class')
     pred.out <- data.frame(Y_test,
                            pred.class,
                            pred.response,
@@ -243,7 +252,7 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
     currfl <- tail(fl, s) 
     
     r1 <- randomForestSRC::rfsrc(Surv(col_surv, col_event) ~ ., 
-                                 data = cbind(X_train[, currfl], Y_train), 
+                                 data = cbind(X_train[, currfl,drop=F], Y_train), 
                                  importance = RFE_criteria, ## runSpec$RFE_criteria, currently fix it to permute
                                  seed = seed) 
     

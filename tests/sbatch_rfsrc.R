@@ -39,6 +39,8 @@ runSpec <- list(
 
 ## modify data
 
+# users need ensure there are no NA in the feature matrix
+
 #######################
 ## End of User Input ##
 #######################
