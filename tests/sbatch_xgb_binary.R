@@ -12,8 +12,8 @@ runSpec <- list(
 
   project_home = "~/EVE/tests",
   engine = "XGBoost_clasi.py", 
-  project_name = "xgboost_binary_outCV_test",  
-  training_data = "data/test_binaryclass_tcga_brca.csv", 
+  project_name = "xgboost_binary_outCV_test_v2",  
+  training_data = "data/test_binaryclass_tcga_brca_weightcol.csv", 
   label_name = "pam50_RNAseq", 
   sample_ID = "Patient_ID", 
   surv_col = NA, 
@@ -22,7 +22,8 @@ runSpec <- list(
   RFE_step = 10, 
   
   ## change the weight of positive label
-  scale_pos_weight = 0.3, 
+  #scale_pos_weight = 0.3, 
+  weight_col = "weight_col",
   RFE_criteria = 'gain',  
   
   split_CVs = T,
@@ -33,7 +34,10 @@ runSpec <- list(
 ### Input Data Processing (optional) ###
 #######################
 
-## modify data
+#df <- read.csv(paste0(runSpec$project_home, "/", "data/test_binaryclass_tcga_brca.csv"))
+#df$weight_col <- ifelse(df$pam50_RNAseq==1, 0.3, 1)
+#write.csv(df, paste0(runSpec$project_home, "/", runSpec$training_data), 
+#          row.names = F)
 
 #######################
 ## End of User Input ##
