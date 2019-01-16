@@ -16,7 +16,7 @@ runSpec <- list(
 
   project_home = "~/EVE/tests",
   engine = "lasso.r", ## ML engine
-  project_name = "lasso_multi_outCV_test2",  
+  project_name = "lasso_multi_outCV_test",  
   training_data = "data/test_multiclass_tcga_brca.csv", 
   label_name = "pam50_RNAseq", #"pam50_RNAseq", 
   sample_ID = "Patient_ID", 
