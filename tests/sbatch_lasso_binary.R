@@ -19,7 +19,6 @@ runSpec <- list(
   event_col = NA, #NA, 
   family = "binomial",
   num_CV = 3, # -1 for LOOCV
-  RFE_step = 10, 
   
   ## colname for the weights
   weight_col = NA, 
