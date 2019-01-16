@@ -53,25 +53,28 @@ summary(df.orig[[runSpec$label_name]])
 
 ## 1. Scores
 
-`average = T`: scores are based on pre-validation (combine predictions from all CVs per job and then calculate a single score per job). 
-
-`average = F`: report all the scores from each CV across entire jobs. 
 
 ```{r, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
-plt <- plotRMSE(df.preval, label_name = runSpec$label_name, average = T)
+plt <- plotRMSE(df.preval, label_name = runSpec$label_name)
 plt$overall
 ```
+
+```{r, warning=FALSE, echo=FALSE}
+knitr::kable(eval.minmax(plt$df.scores))
+```
+
 
 ### correlation
 
 ```{r, echo=FALSE}
-df.in <- df.preval %>% filter(seed == 1001, size == 41)
+size <- max(df.preval$size) ## default is total feature size. User can choose any RFE size
+seed <- min(df.preval$seed) ## default chooses smaller seed.
+
+df.in <- df.preval %>% filter(seed == seed, size == size)
 lb_name <- as.name(runSpec$label_name)
 ggplot(data = df.in, 
        aes_string(x="pred", y = lb_name)) + 
-  geom_point() #+
-  #scale_x_continuous(limits = c(-2.25, -1.25)) +
-  #scale_y_continuous(limits = c(-2.25, -1.25))
+  geom_point() 
 ```
 
 ```{r, echo=FALSE}
@@ -87,7 +90,7 @@ df.preval %>%
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 #df.vimp.plt <- plotVIMP(df.vimp, bin = 50)
-df.vimp.plt <- plotVIMP(df.vimp, bin = 50, ft_num = 41)
+df.vimp.plt <- plotVIMP(df.vimp, bin = 50)
 df.vimp.avg <- df.vimp.plt$df
 
 ## plot
@@ -101,7 +104,7 @@ write_csv(df.vimp.avg, paste0(runSpec$outP, "/Analyzed_FeatureImportance_avg.csv
 
 ```{r, echo=FALSE, fig.height=8, fig.width=9}
 ## vimp scatter plot
-plotVIMP_scatter(df.vimp, top_n = 20, ft_num = 41)
+plotVIMP_scatter(df.vimp, top_n = 20)
 ```
 
 

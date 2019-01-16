@@ -20,7 +20,7 @@ project_name <- "rfsrc_outCV_test"
 
 ## 0. Load Data
 
-```{r, message=FALSE, comment=NA, echo=FALSE}
+```{r, message=FALSE, comment=NA, echo=FALSE, warning=FALSE}
 library(tidyverse)
 library(survival)
 library(survminer)
@@ -60,7 +60,13 @@ plt$overall +
 ```
 Note for the **HR plot**: A HR value (per seed) is calculated by comparing the survival time between 'long' and 'short' survivors. These two group is defined by splitting samples based on _median_ predicted risk score; group_0 is predicted risk scores > median, which can be viewed as 'short survivors'. On the other hand, group_1 can be viewed as 'long survivors'. If the prediction is reasonable, the hazard ratio of group_1/group_0 should be < 1. The actual function used in calculating HR is ```coxph(Surv(time, status) ~ group.binary, df)```.
 
-```{r}
+
+```{r, echo=FALSE, warning=FALSE}
+knitr::kable(eval.minmax(plt$df.scores))
+```
+
+
+```{r, echo=FALSE}
 err1 <- data.frame(plt$df.scores)
 smoothScatter(err1[, 'cindex'], err1[,'BrierScore'], 
               main=paste('pearson corr:', round(cor(err1[, 'cindex'], err1[,'BrierScore']), 2) ))
