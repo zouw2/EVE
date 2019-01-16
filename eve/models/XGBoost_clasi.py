@@ -94,7 +94,7 @@ else:
 
 if not featureList:
     print("Use all features")
-    col2drop = [label, sampleID, "USUBJID", "OS", "OS.event", "PFS", "PFS.event"]
+    col2drop = [label, sampleID, "USUBJID", "OS", "OS.event", "PFS", "PFS.event", runSpec["weight_col"]]
     idx = df.columns.isin(col2drop)
     x = df.iloc[:, ~idx] ## remove those columns that are not features
 else:
@@ -155,7 +155,7 @@ xgb_params = {
     "colsample_bytree": 0.8, # 1, [0,1], subsample ratio of columns when constructing each tree
     "reg_lambda": 1, # 1, L2 regularization term on weights, increase this value will make model more conservative
     "reg_alpha": 0, # 0, L1 regularization term on weights, increase this value will make model more conservative
-    "scale_pos_weight": float(runSpec["scale_pos_weight"]), #581/219, #1,  sum(negative cases) / sum(positive cases)
+    #"scale_pos_weight": float(runSpec["scale_pos_weight"]), #581/219, #1,  sum(negative cases) / sum(positive cases)
     "silent": 1,
     "objective": obj,
     "njobs": -1,
@@ -189,13 +189,21 @@ df_prevalid = pd.DataFrame()
 cv_id = 1
 for train_index, test_index in ss.split(x, df[label]):
   #print("TRAIN:", train_index, "TEST:", test_index)
+  
+  ## get weights
+  if runSpec["weight_col"] == "NA":
+    weights = None
+  else:
+    weights = df.loc[train_index, runSpec["weight_col"]]
+  
   if (cv_id_curr == 0):
     print("Fold number:", cv_id)
     X_train, X_test = x.iloc[train_index], x.iloc[test_index]
     Y_train, Y_test = y.iloc[train_index], y.iloc[test_index]
     
     df_vimp_tmp, df_grid_tmp, df_prevalid_tmp \
-        = unit_train(xgbc, X_train, Y_train, X_test, Y_test, sizes, evalm, HR_calc, RFE_criteria)
+        = unit_train(xgbc, X_train, Y_train, X_test, Y_test, 
+                     sizes, evalm, HR_calc, RFE_criteria, weights)
     
     df_vimp_tmp["cv"] = cv_id
     #df_error_tmp["cv"] = cv_id
@@ -213,7 +221,8 @@ for train_index, test_index in ss.split(x, df[label]):
     Y_train, Y_test = y.iloc[train_index], y.iloc[test_index]
     
     df_vimp_tmp, df_grid_tmp, df_prevalid_tmp \
-        = unit_train(xgbc, X_train, Y_train, X_test, Y_test, sizes, evalm, HR_calc, RFE_criteria)
+        = unit_train(xgbc, X_train, Y_train, X_test, Y_test, 
+                     sizes, evalm, HR_calc, RFE_criteria, weights)
   
     df_vimp_tmp["cv"] = cv_id
     #df_error_tmp["cv"] = cv_id

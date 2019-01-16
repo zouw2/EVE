@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 
 ## GridSearch for max_depth and min_child_weight 
-def grid_search(xgbc, X_train, Y_train, X_test, Y_test, evalm):
+def grid_search(xgbc, X_train, Y_train, X_test, Y_test, evalm, weights=None):
     """ perform Randomized Search
     n_iter trades of between performance and speed.
     n_iter large will be just like gridsearch, but will have the best performance.
@@ -27,6 +27,7 @@ def grid_search(xgbc, X_train, Y_train, X_test, Y_test, evalm):
                  }
 
     fit_params={"early_stopping_rounds":100, 
+                "sample_weight": weights,
                 "eval_metric" : evalm, 
                 "eval_set" : [(X_test, Y_test)],
                 "verbose": False}
@@ -178,7 +179,7 @@ def confM(xgbc, X_test, Y_test, evalm, xgbc_cali=None, Y_test_surv=None):
     # return(df, df_prevalid)
     return(df_prevalid)
 
-def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=False, RFE_criteria="gain"):
+def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=False, RFE_criteria="gain", weights=None):
     """Main XGBoost engine that calculates error, vimp, gridsearch, hr
     
     Parameters
@@ -202,6 +203,10 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
         Evaluation metric used in calculating model score (e.g. auc, accurac, ...)
     HR_calc: bool
         indicate whether to calculate hazard ratio or not
+    RFE_criteria: string
+        whether to use "gain" or "frequence" for removing features
+    weights: np.array
+        array of sample weights (default is None)
     
     Returns
     ---------
@@ -260,7 +265,7 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
         if (i % (round(len(ft_seqs)*0.2)+1) == 0): ## +1 is to avoid error of dividing 0
             print("feature size:", k)
             grid = grid_search(xgbc, X_train.loc[:, top_fts], Y_train, 
-                                    X_test.loc[:, top_fts], Y_test, evalm)
+                                    X_test.loc[:, top_fts], Y_test, evalm, weights)
             df_grid_ = pd.DataFrame.from_records([grid.best_params_])
             df_grid_["score"] = grid.best_score_
             df_grid_["size"] = k
@@ -268,6 +273,7 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
             
         xgbc.set_params(**grid.best_params_)
         xgbc.fit(X_train.loc[:, top_fts], Y_train,
+                sample_weight = weights,
                 eval_set = [(X_test.loc[:, top_fts], Y_test)], 
                 eval_metric = evalm, 
                 early_stopping_rounds=100, 
@@ -279,7 +285,7 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
         
         if evalm in ["auc", "merror"]:
             xgbc_cali = CalibratedClassifierCV(xgbc, method='isotonic', cv=5)
-            xgbc_cali.fit(X_train.loc[:, top_fts], Y_train)
+            xgbc_cali.fit(X_train.loc[:, top_fts], Y_train, sample_weight = weights)
         else:
             xgbc_cali = None
         

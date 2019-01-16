@@ -22,7 +22,8 @@ runSpec <- list(
   RFE_step = 10, 
   
   ## change the weight of positive label
-  scale_pos_weight = 1, 
+  #scale_pos_weight = 1, 
+  weight_col = "weight_col",
   RFE_criteria = 'gain',  
   
   split_CVs = T,
