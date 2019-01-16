@@ -69,24 +69,34 @@ if( !is.na(runSpec$weight_col) && nchar(runSpec$weight_col) && runSpec$weight_co
 ## 1. Scores
  
 
-Note: '# of feature retain' is not meaningful in this setup. It is just the total number of features. 
-The RFE concept is cooked into 'lambda' optimization, 
-and each CV may have different lambda values, 
-so it makes comparing prevalidation scores at different lambda difficult.
-
 ```{r, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
 plt <- plotScores(df.preval, runSpec$label_name)
 plt$byClass +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  scale_y_continuous(breaks = seq(0, 1, 0.1))
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
 ```
 
 ```{r, echo=FALSE}
 plt$overall +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
 ```
 
 
+### 1.1 Confusion Matrix
+
+```{r}
+num_cv <- length(unique(df.preval$cv)) 
+num_seed <- length(unique(df.preval$seed))
+df.tmp <- df.preval 
+
+cm <- confusionMatrix(as.factor(df.tmp$pred), 
+                      as.factor(df.tmp[[runSpec$label_name]]))
+cat("sum across", num_seed, "seeds and", num_cv, "CVs\n")
+cm$table
+```
 
 ## 2. Important Features
 
@@ -110,6 +120,9 @@ barplot(tail(sort(table(df.vimp$feature)), 20),
         horiz =T, las=2, main='most used features')
 ```
 
+```{r, echo=FALSE}
+plotVIMP2.multiclass(df.vimp)
+```
 
 
 
