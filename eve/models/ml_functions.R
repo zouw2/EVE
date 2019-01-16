@@ -24,7 +24,7 @@ extractBeta <- function(gObj, lambda){
 
   if(is.list(b0)) {
     b1 <- do.call(cbind, b0)
-    colnames(b1) <- names(b0)
+    colnames(b1) <- paste('vimp_', names(b0), sep='')
   }else{
     b1 <- b0
     stopifnot(ncol(b1) == 1)
