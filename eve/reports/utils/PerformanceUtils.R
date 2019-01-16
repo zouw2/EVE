@@ -405,7 +405,44 @@ plotScores <- function(df, label_name, prevalid = TRUE,
               "df.scores" = df.scores))
 }
 
-
+#' Summary table of min/max median of each performance metrics
+#' @param df data.frame of df.scores from getScores function
+#'  
+eval.minmax <- function(df){
+  cols2rm <- c("seed", "size", "p.value", "conf.low", "conf.high", "Classes",
+               "Random_MAE", "Random_RMSE", "Random_Rsquared")
+  
+  score.max <- df %>% 
+    gather("metrics", "score", -one_of(cols2rm)) %>% 
+    group_by(seed, size, metrics) %>% 
+    summarize(avg.score = mean(score)) %>% ## average across CV (if not prevalidation)
+    group_by(size, metrics) %>% 
+    summarize(med = round(median(avg.score), 3)) %>% 
+    group_by(metrics) %>% 
+    arrange(desc(med)) %>% 
+    slice(1) %>% 
+    ungroup() %>% 
+    rename(median.max = med,
+           size.max = size) 
+  
+  score.min <- df %>% 
+    gather("metrics", "score", -one_of(cols2rm)) %>% 
+    group_by(seed, size, metrics) %>% 
+    summarize(avg.score = mean(score)) %>% ## average across CV (if not prevalidation)
+    group_by(size, metrics) %>% 
+    summarize(med = round(median(avg.score), 3)) %>% 
+    group_by(metrics) %>% 
+    arrange(med) %>% 
+    slice(1) %>% 
+    ungroup() %>% 
+    rename(median.min = med,
+           size.min = size)
+  scores <- score.max %>% 
+    left_join(score.min, by="metrics") %>% 
+    select(metrics, size.max, median.max, size.min, median.min)
+  
+  return(scores)
+}
 
 #' Plot calibration curve based on given feature size
 #' This plot is only for binary classification, although multiclass can be classified in sklearn.
@@ -489,6 +526,31 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, bin=30, ignore_neg=FALSE){
   return(list(df = df.vimp.scores,
               plt.dist.f = plt1,
               plt.fts.f  = plt2))
+}
+
+#' This is to visualize Lasso's multi-class prediciton VIMP
+#' Because it outputs vimp for each class, we have to loop through each class
+#' 
+plotVIMP2.multiclass <- function(df, ft_num=NULL, top_n=20, bin=30){
+  idx <- grepl("vimp_", colnames(df))
+  vimps <- colnames(df)[idx]
+  classes <- gsub("vimp_", "", vimps)
+  
+  for(i in 1:length(vimps)){
+    df.vimp.tmp <- df %>% 
+      select(-one_of(vimps[-i])) 
+    idx.col <- grepl("vimp_", colnames(df.vimp.tmp))
+    colnames(df.vimp.tmp)[idx.col] <- "vimp"
+    
+    df.vimp.plt <- plotVIMP2(df.vimp.tmp, bin = bin, top_n = top_n)
+    ## plot
+    plt1 <- df.vimp.plt$plt.dist.f +
+      ggtitle(paste("Distribution of Feature Coefficient for Class", classes[i]))
+    print(plt1)
+    plt2 <- df.vimp.plt$plt.fts.f +
+      ggtitle(paste("Top Features for Class", classes[i]))
+    print(plt2)
+  }
 }
 
 #' Plot top VIMP (vimp scores are averaged across seeds)
