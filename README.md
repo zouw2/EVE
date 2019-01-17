@@ -1,5 +1,11 @@
 # EVE
 
+Note: EVE is still under active development. A fantastic version will be up soon. If you would like to test EVE, please contact or use the `dev-models` branch:
+
+- Wei Zou, zouw2@gene.com 
+- Andrew Chang, changc25@gene.com
+
+
 [![GitHub repo version](https://img.shields.io/badge/release-v0.1-blue.svg)](https://github.roche.com/ED-EB/EVE)
 
 # Getting started
