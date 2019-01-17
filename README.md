@@ -1,6 +1,6 @@
 # EVE
 
-Note: EVE is still under active development. A fantastic version will be up soon. If you would like to test EVE, please contact or use the `dev-models` branch:
+Note: EVE is still under active development. A fantastic version will be up soon. If you would like to test EVE, please use the `dev-models` branch or contact:
 
 - Wei Zou, zouw2@gene.com 
 - Andrew Chang, changc25@gene.com
