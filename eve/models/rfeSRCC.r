@@ -36,8 +36,7 @@ if (!file.exists(runSpec$outP)){
 #########################
 ## read & process data ##
 #########################
-df <- read.csv(paste(runSpec$project_home, runSpec$training_data, sep='/'), 
-               as.is=T)
+df <- read.csv(paste(runSpec$project_home, runSpec$training_data, sep='/') )
 
 if(is.na(runSpec$sample_ID)|is.null(runSpec$sample_ID)|(runSpec$sample_ID=="")){
   print("Use index as sample ID")
