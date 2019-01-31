@@ -1,4 +1,5 @@
-<img src="/images/EVE.png" width="60%"> # EVE
+# EVE <img src="/images/EVE.png" width="20%"> 
+
 
 [![GitHub repo version](https://img.shields.io/badge/release-v0.2-blue.svg)](https://github.roche.com/ED-EB/EVE)
 
@@ -41,13 +42,13 @@ install.packages(pkgs)
 ```
 
 
-### Run jobs
+### Algorithms
 
 1. **glmnet (lasso.r)** for binary, multinomial, gaussian and survival outcomes
 2. **survival random forest (rfeSRCC.r)** for survival outcome based on _randomforestSRC_
 3. **XGBoost (XGBoost_xxx.py)** for binary, multiclass, regression, and survival outcomes 
 
-#### 1. Execute
+### Execute
 
 Go to `examples` folder, copy sbatch_xxxx.R to your project folder. This R script 
 1. collects input parameters, including an engine script which may or may not be implemented in R, 
@@ -63,7 +64,7 @@ Note: once the job is submitted you will see `log` folder under your project fol
 When job is done, you will see `results` folder containing all outputs files. 
 **Please do NOT Push these two folders to this repo because those files can be huge**
 
-#### 2. Harvest Results
+### Harvest Results
 
   - go to `examples/reports/` (these .Rmd files are reporting template).
   - choose corresponding `.Rmd` file. 
