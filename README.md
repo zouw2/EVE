@@ -13,7 +13,9 @@ Note: EVE is still under active development. A fantastic version will be up soon
 
 ### Clone this repo to your HOME
 
-(currently the paths used in the code only allow users to clone this repo to HOME)
+```diff
+- __currently the paths used in EVE assume users always clone this repo to your unix HOME__
+```
 
 ```console
 ssh rescomp5003.gene.com
@@ -36,7 +38,8 @@ pip install --user -r requirements.txt
 
 If you will use **R**:
 
-Open [RStudio on rescomp](http://rescomp5105.gene.com:8080), then:
+Open [RStudio on rescomp](http://rescomp5105.gene.com:8080), 
+make sure you are using **R 3.5.1** or above, then:
 
 ```r
 pkgs <- c("prodlim", "survival", "survminer", "glmnet", "pec", 
@@ -58,18 +61,23 @@ ToDo: Need to implement proper testing
   how do we quickly compare the performance of the model?)
   
 
+### Currently available analysis engines
+
+1. glmnet for binary, multinomial, gaussian and survival outcomes (lasso.r), based on glmnet
+2. survival random forest (rfeSRCC.r), based on randomforestSRC
+3. xgboost for categorical, gaussian and survival outcomes (XGBoost_xxx.py)
+
 ### Execute
 
-Go to `tests` folder, open sbatch_xxxx.R
+Go to `tests` folder, copy sbatch_xxxx.R to your project folder. This r script 
+1. collects input parameters, including an engine script which may or may not be implemented in R, 
+2. prepares input data file if necessary
+3. splits repeated CV or LOOCV by repeated calling the engine script on different CPU
 
-If it is python engine (e.g. xgboost), remember to use command line (for example):
+For more definition of user inputs in sbatch_xxx.R, please see [here](https://docs.google.com/spreadsheets/d/1OAmZDae7MF9NXBBwR6YpHjLxbUVFbFw7_y6HzFJegHY/edit#gid=0).
 
-```console
-module load apps/python
-Rscript ~/EVE/tests/sbatch_xgb_regression.R
-```
-
-If it is R engines, just open sbatch_xxx.R, and then click **Source** in RStudio.
+Open sbatch_xxx.R, modify to fit your project and then click **Source** in RStudio. 
+It can now work for both R and Python engines. 
 
 Note: once the job is submitted you will see `log` folder under tests. 
 When job is done, you will see `results` folder containing all outputs files. 

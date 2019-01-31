@@ -61,15 +61,20 @@ cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
 ### 1.1 uncalibrated average
 
 ```{r, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
-plt <- plotHR(df.preval, average = TRUE)
+plt <- plotHR(df.preval)
 plt$overall +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
 ```
 
 
+The following plot is to quickly see how well the prediction can separate long and short survivor. 
 ```{r, echo=FALSE}
+seed <- min(df.preval$seed) ## default chooses smaller seed.
+
 df.in <- df.preval %>% 
-  filter(seed==1001) %>% # seed==1001
+  filter(seed==seed) %>% # seed==1001
   mutate(pred.binary = ifelse(pred < median(pred), 1, 0))
 
 fit1 <- survfit(Surv(col_surv, col_event) ~ pred.binary, data = df.in)
@@ -77,8 +82,6 @@ ggsurvplot(fit1, data = df.in, pval = TRUE)
 ```
 
 ## 2. Important Features
-
-For Lasso, we calculate how many times a given features is being used in all the runs.
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 main <- paste('distribution across', length(unique(df.vimp$seed)), 'seed x', length(unique(df.vimp$cv)),'CV')
@@ -89,10 +92,19 @@ hist(table(df.vimp$feature), main = main , xlab = xlab)
 ```{r, fig.height=6, echo=FALSE}
 par(mar=c(5,20,4,2))
 barplot(tail(sort(table(df.vimp$feature)), 20), 
-        horiz =T, las=2, main='most used features')
+        horiz =T, las=2, main='Number of times a feature is used')
 ```
+(currently only Lasso has this graph)
 
 
+```{r}
+df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 10)
+## plot
+df.vimp.plt$plt.dist.f +
+  ggtitle("Distribution of Feature Coefficient")
+df.vimp.plt$plt.fts.f +
+  ggtitle("Top Features")
+```
 
 
 

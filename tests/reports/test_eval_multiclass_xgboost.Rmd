@@ -57,9 +57,6 @@ table(df.orig[[runSpec$label_name]])
 
 ## 1. Scores
 
-`average = T`: scores are based on pre-validation (combine predictions from all CVs per job and then calculate a single score per job). 
-
-`average = F`: report all the scores from each CV across entire jobs. 
 
 ```{r, fig.width=8, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
 plt <- plotScores(df.preval, runSpec$label_name)
@@ -73,11 +70,35 @@ plt$overall +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
+### 1.1 Metrics Min/Max
+
+```{r, warning=FALSE, echo=FALSE}
+knitr::kable(eval.minmax(plt$df.scores))
+```
+average scores across classes
+
+
+### 1.2 Confusion Matrix
+
+```{r}
+size_num <- max(df.preval$size) ## user can change this number
+num_seed <- length(unique(df.preval$seed))
+df.tmp <- df.preval %>% 
+  filter(size == size_num)
+
+cm <- confusionMatrix(as.factor(df.tmp$pred), 
+                      as.factor(df.tmp[[runSpec$label_name]]))
+cat("confusion matrix at feature size =", size_num, "\nsum across", num_seed, "seeds\n")
+cm$table
+```
+
+
+
 ## 2. Important Features
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 #df.vimp.plt <- plotVIMP(df.vimp, bin = 50)
-df.vimp.plt <- plotVIMP(df.vimp, bin = 50, ft_num = 40)
+df.vimp.plt <- plotVIMP(df.vimp, bin = 50)
 df.vimp.avg <- df.vimp.plt$df
 
 ## plot
@@ -91,7 +112,7 @@ write_csv(df.vimp.avg, paste0(runSpec$outP, "/Analyzed_FeatureImportance_avg.csv
 
 ```{r, echo=FALSE, fig.height=8, fig.width=9}
 ## vimp scatter plot
-plotVIMP_scatter(df.vimp, top_n = 20, ft_num = 40)
+plotVIMP_scatter(df.vimp, top_n = 20)
 ```
 
 

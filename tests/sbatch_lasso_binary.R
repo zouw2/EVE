@@ -19,10 +19,9 @@ runSpec <- list(
   event_col = NA, #NA, 
   family = "binomial",
   num_CV = 3, # -1 for LOOCV
-  RFE_step = 10, 
   
-  ## change the weight of positive label
-  weight.var = NA, 
+  ## colname for the weights
+  weight_col = NA, 
   
   split_CVs = T,
   queue_priority = "short", ## short, medium, long
@@ -38,6 +37,9 @@ runSpec <- list(
 #######################
 
 ## modify data
+# In this section, users are supposed to scale numeric features (if necessary); dummify categorical variables ; to provide weight values for each observation. Remaining character variables will be converted to factors and then integers, which is usually not what we want.
+
+#Users do not have to remove features with constant values or missing values; they are removed implicitly in the current implementation.
 
 #######################
 ## End of User Input ##

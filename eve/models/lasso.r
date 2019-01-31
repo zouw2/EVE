@@ -34,16 +34,15 @@ outF <- paste0(runSpec$outP,
                "_cv", specLocal$cv_id_curr, ".rdata")
 #outF <- paste(runSpec$outP, '/glmnet_', paste(unlist(specLocal), collapse="_"),'.rdata', sep='')
 
-#if( file.exists(outF) && T) { ## what is this T?
-#  print(paste(outF,'already exits. quitting...'))
-#  q()
-#}  
+if( file.exists(outF) && T) {
+  print(paste(outF,'already exits. quitting...'))
+  q()
+}  
 
 #########################
 ## read & process data ##
 #########################
-df <- read.csv(paste(runSpec$project_home, runSpec$training_data, sep='/'), 
-               as.is=T)
+df <- read.csv(paste(runSpec$project_home, runSpec$training_data, sep='/'))
 
 if(is.na(runSpec$sample_ID)|is.null(runSpec$sample_ID)|(runSpec$sample_ID=="")){
   print("Use index as sample ID")
@@ -51,6 +50,13 @@ if(is.na(runSpec$sample_ID)|is.null(runSpec$sample_ID)|(runSpec$sample_ID=="")){
   rownames(df) <- as.character(df[[runSpec$sample_ID]])
   stopifnot(runSpec$sample_ID %in% colnames(df))
   stopifnot(!any(duplicated(as.character(df[[runSpec$sample_ID]]))))
+}
+
+if( is.null(runSpec$weight_col) || is.na(runSpec$weight_col) || runSpec$weight_col==""){
+  runSpec$weight.value <- rep(1, nrow(df))
+}else{
+  stopifnot(runSpec$weight_col %in% colnames(df))
+  runSpec$weight.value <- df[, runSpec$weight_col]
 }
 
 if (runSpec$family %in%  'cox') {
@@ -70,8 +76,12 @@ if (runSpec$family %in% c("gaussian")) {
   y <- df[, runSpec$label_name, drop=F] # y will be handled similarly for cox and categorical outcome
 }  
 
+if(any(is.na(as.vector(y)))){
+  print(paste('there are', sum(is.na(as.vector(y))),'missing values in the outcome data file'))
+}
+
 col2drop <- c(runSpec$label_name, runSpec$sample_ID,
-              runSpec$surv_col,   runSpec$event_col)
+              runSpec$surv_col,   runSpec$event_col, runSpec$weight_col)
 
 x <- data.matrix( df[,!(colnames(df) %in% col2drop)] ) ## why data.matrix not data.frame
 
@@ -148,7 +158,7 @@ for (cv.idx in cvList){
                                glmnetFam = runSpec$family, 
                                a1 = runSpec$alpha, 
                                nCv4lambda = runSpec$nCv4lambda, 
-                               lambdaSum = match.fun(runSpec$lambdaSum), 
+                               lambdaSum = match.fun(runSpec$lambdaSum), runPairs=runSpec$runPairs,
                                lambdaChoice = runSpec$lambdaChoice, 
                                w = runSpec$weight.value[-cv.idx])
     
@@ -162,7 +172,8 @@ for (cv.idx in cvList){
     df_vimp <- rbind(df_vimp, df_vimp_tmp)
     df_pred <- rbind(df_pred, df_pred_tmp)
     
-  } else if (specLocal$cv_id_curr == cv_id){
+  } else {
+    if (specLocal$cv_id_curr == cv_id){
     print("1 CV per job")
     print(paste("Fold number:", cv_id))
     X_train = x[-cv.idx, featureList, drop=F]
@@ -178,25 +189,29 @@ for (cv.idx in cvList){
                                glmnetFam = runSpec$family, 
                                a1 = runSpec$alpha, 
                                nCv4lambda = runSpec$nCv4lambda, 
-                               lambdaSum = match.fun(runSpec$lambdaSum), 
+                               lambdaSum = match.fun(runSpec$lambdaSum), runPairs=runSpec$runPairs,
                                lambdaChoice = runSpec$lambdaChoice, 
                                w = runSpec$weight.value[-cv.idx])
     
-    df_vimp_tmp <- data.frame("feature" = df.out$features,
+    df_vimp_tmp <- data.frame( df.out$features,
                               "lambda" = df.out$lambda,
                               "cv" = cv_id)
     df_pred_tmp <- df.out$pred
     df_pred_tmp["cv"] <- cv_id
-    df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test) ## add sample ID here
-    
+#    df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test) ## add sample ID here
+    df_pred_tmp[[runSpec$sample_ID]] <- rownames(df_pred_tmp)
+    rownames(df_pred_tmp) <- NULL
     df_vimp <- rbind(df_vimp, df_vimp_tmp)
     df_pred <- rbind(df_pred, df_pred_tmp)
-  }
+    }
+    }
   cv_id <- cv_id + 1
 }
+
 ## added 'size' column to work with reporting functions
-## note: the 'size' in Lasso is not meaningful.
-## the 'lambda' values is more meaningful, larger lambda correspond to smaller feature size
+## note: plotting performance against # of feature retained is not meaningful for lasso.
+## note: size for lasso is just the total # of features in the input matrix
+
 df_vimp$size <- dim(x)[2]
 df_pred$size <- dim(x)[2]
 

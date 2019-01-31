@@ -18,10 +18,30 @@ findConstantVar <- function(ds){
   monov[!is.na(monov)]
 }  
 
+extractBeta <- function(gObj, lambda){
+  stopifnot('glmnet' %in% class(gObj))
+  b0 <-   coef(gObj, lambda) 
+
+  if(is.list(b0)) {
+    b1 <- do.call(cbind, b0)
+    colnames(b1) <- paste('vimp_', names(b0), sep='')
+  }else{
+    b1 <- b0
+    stopifnot(ncol(b1) == 1)
+    colnames(b1) <- 'vimp' #to work with reporting program
+  }
+
+  b1 <- as.matrix(b1)
+  b1 <- b1[setdiff(row.names(b1), "(Intercept)"), ,drop=F]
+  b1[apply(b1, 1, function(x) any(abs(x) > 0)),,drop=F]
+}
+
+
 glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
                              seed = 27519, 
                              glmnetFam="binomial", a1=1, 
                              nCv4lambda=10, lambdaSum=mean, 
+                             runPairs=c(),
                              lambdaChoice = 'lambda.min',  w=1, ... ){
   
   set.seed(seed)
@@ -33,6 +53,8 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     #   if (class(Y_test) %in% c('matrix','data.frame'))  Y_test <-  Y_test[, 1]
     stopifnot( is.factor(Y_train) );
     #    stopifnot( is.factor(Y_test) );
+    if (nlevels(Y_train) == 2) stopifnot(glmnetFam %in% 'binomial')
+    if (nlevels(Y_train) > 2) stopifnot(glmnetFam %in% 'multinomial')
     print('training data label counts')
     print(table(Y_train))
   }
@@ -57,20 +79,27 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
       print(paste("Drop", sum(idx2drop), "samples with survival time = 0."))
       Y_train <- Y_train[!idx2drop, ]
       X_train <- X_train[!idx2drop, ]
+      w <- w[!idx2drop] ## drop the weights associated with those samples as well
     }
   }
   
   if (is.null(w)){ ## if no weight vector is given
     w = rep(1, dim(X_train)[1])
+  }else{
+    if(glmnetFam %in% c("multinomial", "binomial")){
+    print('weight distribution by outcome levels')
+    print(table(w,Y_train))
+    }
   }
+  
   print(paste('alpha=', a1))
   
   print('dim of training x')
   print(dim(X_train))
   
-  monov <- findConstantVar(X_train)
+  f <- setdiff(colnames(X_train), findConstantVar(X_train))
   
-  x1 <- X_train[, setdiff(colnames(X_train), monov)]
+  x1 <- X_train[, f]
 
   maxL <- lambdaSum( sapply(1:nCv4lambda, function(i) {
     set.seed(seed +100 + i)
@@ -83,51 +112,124 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     
   }) , na.rm = T)
 
+  
   g1 <- glmnet(x=x1, y = (function(yobj){
     if(glmnetFam =='cox') return(Surv(yobj)); 
-    return(yobj) })(Y_train),  family = glmnetFam, alpha = a1, lambda=maxL, standardize =T, weights=w, ...)
+    return(yobj) })(Y_train),  family = glmnetFam, alpha = a1,  standardize =T, weights=w, ...)
+
+# features from g1
+  features <- extractBeta(g1, lambda=maxL) 
+  featureCol <- colnames(features)
+ 
   
-  pred.response <- predict(g1, newx = X_test[, setdiff(colnames(X_test), monov)], s=maxL, type = 'response' )
-  
-  if(glmnetFam == "binomial" & dim(pred.response)[2] != 2){
-    lbs <- unique(Y_train)
-    lb.exist <- colnames(pred.response)
-    lb.missing <- setdiff(lbs, lb.exist)
-    pred.response <- cbind(pred.response, (1 - pred.response))
-    colnames(pred.response) <- c(lb.exist, lb.missing)
+# feature select with runPairs
+  subsetFeatures <- c()
+  if(length(runPairs) > 0){
+    stopifnot(glmnetFam %in% "multinomial")
+    
+    pairwiseFeatures <-  lapply(runPairs, function(g){
+      g <- unique(g)
+      
+      print(paste('select features between', paste(g, collapse = ',')))
+      
+      stopifnot(length(g) > 1)
+      
+      if(!all(g %in% levels(Y_train))){
+        print( paste('not all levels from', paste(g, collapse = ','),'are found in this training data; no features will be selected from this comparison'))
+        return(c())
+      }
+      
+      sel2 <- as.character(Y_train) %in% g
+      
+      x2 <- x1[sel2, ]; x2[, setdiff(colnames(x2),  findConstantVar(x2))]
+      y2 <- factor(as.character(Y_train[sel2])); 
+      stopifnot(all(as.character(y2) %in% g));
+      
+      fam2 <- ifelse(length(g) ==2, "binomial", "multinomial")
+      
+      maxL2 <- lambdaSum( sapply(1:nCv4lambda, function(i) {
+        set.seed(seed + 200 + i)
+        r1 <- cv.glmnet(x=x2, y=y2, family=fam2, alpha = a1 , standardize =T, weights = w[sel2], ...)
+        r1[[lambdaChoice]]
+        
+      }) , na.rm = T)
+      
+      g2 <- glmnet(x=x2, y = y2,  family = fam2, alpha = a1, standardize =T, weights = w[sel2], ...)
+      
+      row.names(extractBeta(g2, lambda=maxL2 ))
+      
+    })
+    
+    subsetFeatures <- unique(do.call(c, pairwiseFeatures))
   }
+  
+  subsetFeatures <- setdiff(subsetFeatures, row.names(features))
+  
+  
+# final prediction  
+  if(length(subsetFeatures) == 0){ # feature selection and outcome prediction will be the same model
+    
+  }else{ # refit a ridge regression and use that model to prediction. Note the coefficient values from this approach are not comparable to the standard glmnet flow
+    print(paste('analyses in subgroups using a subset of labels adds', length(subsetFeatures), 'to plain glmnet selection of', nrow(features),'features'))
+    f <- unique(c( row.names(features), subsetFeatures))
+    
+    maxL  <- lambdaSum( sapply(1:nCv4lambda, function(i) {
+      set.seed(seed + 300 + i)
+      r1 <- cv.glmnet(x=x1[, f,drop=F], y=Y_train, family= glmnetFam, alpha = 0  , standardize =T, weights=w, ...)
+      r1[[lambdaChoice]]
+      
+    }) , na.rm = T)
+    
+    g1 <- glmnet(x=x1[, f,drop=F], y = Y_train,  family = glmnetFam, alpha = 0, standardize =T, weights=w, ...)
+    
+    features <- extractBeta(g1, lambda=maxL)
+    
+  }
+
+  pred.response <- predict(g1, newx = X_test[, f,drop=F], s=maxL, type = 'response' )
+    
+  if(glmnetFam == "binomial" & dim(pred.response)[2] == 1){
+    lbs <- levels(Y_train) # we have verified before that Y_train has to be a factor
+#    lb.exist <- colnames(pred.response)
+#    lb.missing <- setdiff(lbs, lb.exist)
+# it seems pred.response may just have column name of '1' and igore the levels of Y_train    
+    pred.response <- cbind(pred.response, (1 - pred.response))
+    colnames(pred.response) <- rev(lbs) # c(lb.exist, lb.missing)
+  }
+  
   ## for survival, change the column back so that it is consistent across different algo.
   if(glmnetFam == "cox") {
     colnames(Y_test) <- c('col_surv','col_event') 
     }
   
   if(glmnetFam %in% c("multinomial", "binomial") ){
-    pred.class <- predict(g1, newx = X_test[, setdiff(colnames(X_test), monov)], s=maxL, type = 'class')
+    pred.class <- predict(g1, newx = X_test[, f,drop=F], s=maxL, type = 'class')
     pred.out <- data.frame(Y_test,
                            pred.class,
                            pred.response,
-                           stringsAsFactors = F, row.names=NULL)
+                           stringsAsFactors = F)
     colnames(pred.out) <- c(colnames(Y_test),
                             "pred", paste0("predprob_", colnames(pred.response)))
   } else {
     pred.out <- data.frame(Y_test,
                            pred.response,
-                           stringsAsFactors = F, row.names=NULL)
+                           stringsAsFactors = F)
     colnames(pred.out) <- c(colnames(Y_test), "pred") ## assuming cox output only contains one column, and also name it 'pred'
   }
 
-  if(is.list(g1$beta)) {
-    b1 <- do.call(cbind, g1$beta)
-  }else{
-    b1 <- g1$beta
-  }
+
+  # prepare feature matrix
   
-  ## ToDo: temporarily use abs(x) > 0 to extract important features.
-  ## need to use coefficient in the future. 
-  features <- row.names(b1)[apply(b1, 1, function(x) any(abs(x) > 0))]
+  if(nrow(features) > 0) {
+    features <- data.frame(row.names(features), features, row.names = NULL, stringsAsFactors = F)
+  }else{
+    features <- data.frame(matrix(rep(NA, ncol(features) + 1), nrow=1))
+  }
+
+  colnames(features) <- c('feature', featureCol)  
   
   ## if all the coefficients are 0 (no important features)
-  if(length(features)==0){ features <- NA}
+#  if(nrow(features)==0){ features <- NA}
   
   list(features = features, 
        lambda = maxL, 
@@ -150,7 +252,7 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
     currfl <- tail(fl, s) 
     
     r1 <- randomForestSRC::rfsrc(Surv(col_surv, col_event) ~ ., 
-                                 data = cbind(X_train[, currfl], Y_train), 
+                                 data = cbind(X_train[, currfl,drop=F], Y_train), 
                                  importance = RFE_criteria, ## runSpec$RFE_criteria, currently fix it to permute
                                  seed = seed) 
     

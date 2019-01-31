@@ -20,7 +20,7 @@ project_name <- "rfsrc_outCV_test"
 
 ## 0. Load Data
 
-```{r, message=FALSE, comment=NA, echo=FALSE}
+```{r, message=FALSE, comment=NA, echo=FALSE, warning=FALSE}
 library(tidyverse)
 library(survival)
 library(survminer)
@@ -53,18 +53,18 @@ cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
 
 ## 1. Scores
 
-`average = T`: scores are based on pre-validation (combine predictions from all CVs per job and then calculate a single score per job). 
-
-`average = F`: report all the scores from each CV across entire jobs. 
-
-`Brier`: currently only works for rfsrc engine
-
-
 ```{r, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
-plt <- plotHR(df.preval, average = T, Brier = T)
+plt <- plotHR(df.preval, Brier = T)
 plt$overall +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
+Note for the **HR plot**: A HR value (per seed) is calculated by comparing the survival time between 'long' and 'short' survivors. These two group is defined by splitting samples based on _median_ predicted risk score; group_0 is predicted risk scores > median, which can be viewed as 'short survivors'. On the other hand, group_1 can be viewed as 'long survivors'. If the prediction is reasonable, the hazard ratio of group_1/group_0 should be < 1. The actual function used in calculating HR is ```coxph(Surv(time, status) ~ group.binary, df)```.
+
+
+```{r, echo=FALSE, warning=FALSE}
+knitr::kable(eval.minmax(plt$df.scores))
+```
+
 
 ```{r, echo=FALSE}
 err1 <- data.frame(plt$df.scores)
@@ -73,9 +73,14 @@ smoothScatter(err1[, 'cindex'], err1[,'BrierScore'],
 lines(lowess(err1[, 'cindex'], err1[,'BrierScore']), col = 'green')
 ```
 
+
+The following plot is to quickly see how well the prediction can separate long and short survivor. 
 ```{r, echo=FALSE}
+size <- max(df.preval$size) ## default is total feature size. User can choose any RFE size
+seed <- min(df.preval$seed) ## default chooses smaller seed.
+
 df.in <- df.preval %>% 
-  filter(size == 70, seed==1001) %>% # seed==1001
+  filter(size == size, seed==seed) %>% 
   mutate(pred.binary = ifelse(pred < median(pred), 1, 0))
 
 fit1 <- survfit(Surv(col_surv, col_event) ~ pred.binary, data = df.in)
@@ -85,7 +90,7 @@ ggsurvplot(fit1, data = df.in, pval = TRUE)
 ## 2. Important Features
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
-df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, ft_num = 50)
+df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, ignore_neg = T)
 df <- df.vimp
 ## plot
 df.vimp.plt$plt.dist.f
