@@ -23,9 +23,7 @@ Install some Python libraries
 
 ```console
 cd ~/EVE
-
 module load apps/python
-
 pip install --user -r requirements.txt
 ```
 
@@ -72,3 +70,5 @@ When job is done, you will see `results` folder containing all outputs files.
   then use `test_eval_regression_xgboost.Rmd`)
   - modify the project path and name accordingly
   - knit to pdf and enjoy it
+
+[Check out what the report looks like.](https://github.roche.com/ED-EB/EVE/blob/master/examples/reports/test_eval_multiclass_xgboost.pdf)
