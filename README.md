@@ -50,7 +50,7 @@ install.packages(pkgs)
 
 ### Execute
 
-Go to `examples` folder, copy sbatch_xxxx.R to your project folder. This R script 
+Go to [`examples`](https://github.roche.com/ED-EB/EVE/tree/master/examples) folder, copy sbatch_xxxx.R to your project folder. This R script 
 1. collects input parameters, including an engine script which may or may not be implemented in R, 
 2. prepares input data file if necessary
 3. splits repeated CV or LOOCV by repeated calling the engine script on different CPU
@@ -66,7 +66,7 @@ When job is done, you will see `results` folder containing all outputs files.
 
 ### Harvest Results
 
-  - go to `examples/reports/` (these .Rmd files are reporting template).
+  - go to [`examples/reports/`](https://github.roche.com/ED-EB/EVE/tree/master/examples/reports) (these .Rmd files are reporting template).
   - choose corresponding `.Rmd` file. 
   (for example, if `sbatch_xgb_regression.R` was used, 
   then use `test_eval_regression_xgboost.Rmd`)
