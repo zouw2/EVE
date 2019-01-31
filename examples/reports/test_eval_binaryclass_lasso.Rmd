@@ -1,6 +1,6 @@
 ---
-title: "Evaluate testing data (survival) - lasso"
-author: "Andrew Chang"
+title: "Evaluate testing data (binary-class) - Lasso"
+author: "John Doe"
 date: '`r Sys.Date()`'
 output:
   pdf_document:
@@ -8,23 +8,24 @@ output:
     toc_depth: '3'
 ---
 
-Labels: os_time
+Note: The two differences between Lasso and Tree-based methods are:
 
+1. Lasso has its own inherent feature selection process.
+2. Lasso's vimp will be based on how many times the feature exist in all runs. Regression coefficients may be presented for binary outcomes
+ 
 
 ```{r}
 ## user input
-project_home <- "~/EVE/tests"
-project_name <- "lasso_survival_outCV_test"
+project_home <- "~/EVE/examples"
+project_name <- "lasso_binary_outCV_test"
 ```
 
 ## 0. Load Data
-
-```{r, message=FALSE, comment=NA, echo=FALSE, warning=FALSE}
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
 library(tidyverse)
-library(survival)
-library(survminer)
-library(randomForestSRC)
 library(broom)
+library(caret)
+library(pROC)
 source("~/EVE/eve/reports/utils/PerformanceUtils.R")
 load(paste0(project_home,"/log/", project_name, "/metainfo.Rdata"))
 
@@ -47,21 +48,40 @@ num.seed <- length(unique(df.preval$seed))
 cat(tot.sample, "of samples were used \n")
 cat(tot.feature, "of full features\n")
 cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
+cat("Labels:\n")
+table(df.orig[[runSpec$label_name]])
+
+if( !is.na(runSpec$weight_col) && nchar(runSpec$weight_col) && runSpec$weight_col %in% colnames(df.orig)){
+  print('summary of weigths')
+  if(runSpec$family %in% c("multinomial", "binomial")){
+    table(df.orig[[runSpec$label_name]], df.orig[[runSpec$weight_col]], useNA='ifany')
+  }else{
+    summary(df.orig[[runSpec$weight_col]])
+  }
+}
 ```
 
 
 ## 1. Scores
 
-`average = T`: scores are based on pre-validation (combine predictions from all CVs per job and then calculate a single score per job). 
-
-`average = F`: report all the scores from each CV across entire jobs. 
-
-## 1. Scores
-
-### 1.1 uncalibrated average
+### 1.1 Scores per Class
 
 ```{r, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
-plt <- plotHR(df.preval)
+plt <- plotScores(df.preval, runSpec$label_name)
+plt$byClass +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+Confusion Matrix
+```{r, echo=FALSE}
+confusionMat(df.preval)
+```
+
+### 1.2 Average score
+
+```{r, echo=FALSE, fig.width=5}
 plt$overall +
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
@@ -69,24 +89,18 @@ plt$overall +
 ```
 
 
-The following plot is to quickly see how well the prediction can separate long and short survivor. 
-```{r, echo=FALSE}
-seed <- min(df.preval$seed) ## default chooses smaller seed.
-
-df.in <- df.preval %>% 
-  filter(seed==seed) %>% # seed==1001
-  mutate(pred.binary = ifelse(pred < median(pred), 1, 0))
-
-fit1 <- survfit(Surv(col_surv, col_event) ~ pred.binary, data = df.in)
-ggsurvplot(fit1, data = df.in, pval = TRUE)
-```
-
 ## 2. Important Features
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 main <- paste('distribution across', length(unique(df.vimp$seed)), 'seed x', length(unique(df.vimp$cv)),'CV')
 xlab <- paste('# of times a feature is selected by lasso (alpha=', runSpec$alpha,')')
 hist(table(df.vimp$feature), main = main , xlab = xlab)
+```
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+with(as.data.frame(df.vimp), hist(table(paste(cv, seed)), 
+                                  xlab = 'number of retained features in one run', 
+                                  main=paste('summary of model size across', length(unique(paste(cv, seed))),'runs')))
 ```
 
 ```{r, fig.height=6, echo=FALSE}
@@ -97,14 +111,23 @@ barplot(tail(sort(table(df.vimp$feature)), 20),
 (currently only Lasso has this graph)
 
 
-```{r}
-df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 10)
+```{r, echo=FALSE}
+df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 20)
 ## plot
 df.vimp.plt$plt.dist.f +
   ggtitle("Distribution of Feature Coefficient")
 df.vimp.plt$plt.fts.f +
   ggtitle("Top Features")
 ```
+
+
+```{r, fig.width=8, echo=FALSE}
+library(pheatmap)
+plotHeatmap(df.vimp.plt$df, df.orig)
+```
+
+
+
 
 
 

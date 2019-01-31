@@ -29,6 +29,7 @@ get_Brier <- function(df.preval){
     df.surv.all <- rbind(df.surv.all, df.sub)
   }
   df.surv.all <- df.surv.all %>% unnest()
+  if(is.na(runSpec$sample_ID)) runSpec$sample_ID <- "RowIndex"
   df.surv.all[[runSpec$sample_ID]] <- df.preval[[runSpec$sample_ID]]
   
   seed0 <- unique(df.preval$seed)[1]

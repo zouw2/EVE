@@ -1,6 +1,6 @@
 ---
-title: "Evaluate testing data (survival) - xgboost"
-author: "Andrew Chang"
+title: "Evaluate testing data (survival) - XGBoost"
+author: "John Doe"
 date: '`r Sys.Date()`'
 output:
   pdf_document:
@@ -12,9 +12,8 @@ Label: os_time
 
 ```{r}
 ## user input
-project_home <- "~/EVE/tests"
+project_home <- "~/EVE/examples"
 project_name <- "xgboost_survival_outCV_test"
-## end of user input
 ```
 
 
@@ -54,40 +53,23 @@ cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
 
 ## 1. Scores
 
-`average = T`: scores are based on pre-validation (combine predictions from all CVs per job and then calculate a single score per job). 
-
-`average = F`: report all the scores from each CV across entire jobs. 
-
-```{r, fig.width=10, fig.height=12, echo=FALSE, message=FALSE, warning=FALSE}
-plt <- plotHR(df.preval, average = TRUE)
+```{r, fig.width=8, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+plt <- plotHR(df.preval)
 plt$overall +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
-```{r, echo=FALSE}
-score.med <- plt$df.scores %>% 
-  gather("metrics", "score", -one_of(c("seed", "size"))) %>% 
-  group_by(seed, size, metrics) %>% 
-  summarize(avg.score = mean(score)) %>% 
-  filter(metrics %in% c("HR", "cindex")) %>% 
-  group_by(size, metrics) %>% 
-  summarize(med = round(median(avg.score), 3)) 
-
-cmax <- score.med %>% 
-  filter(metrics == "cindex") %>% 
-  arrange(desc(med)) %>% 
-  head(1)
-hrmin <- score.med %>% 
-  filter(metrics == "HR") %>% 
-  arrange(med) %>% 
-  head(1)
-
-knitr::kable(rbind(cmax, hrmin))
+```{r, echo=FALSE, warning=FALSE}
+knitr::kable(eval.minmax(plt$df.scores))
 ```
 
+The following plot is to quickly see how well the prediction can separate long and short survivor. 
 ```{r, echo=FALSE}
+size <- max(df.preval$size) ## default is total feature size. User can choose any RFE size
+seed <- min(df.preval$seed) ## default chooses smaller seed.
+
 df.in <- df.preval %>% 
-  filter(size == 20, seed==1001) %>% 
+  filter(size == size, seed==seed) %>% 
   mutate(pred.binary = ifelse(pred < median(pred), 1, 0))
 
 fit1 <- survfit(Surv(col_surv, col_event) ~ pred.binary, data = df.in)
@@ -97,7 +79,6 @@ ggsurvplot(fit1, data = df.in, pval = TRUE)
 ## 2. Important Features
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
-#df.vimp.plt <- plotVIMP(df.vimp, bin = 50)
 df.vimp.plt <- plotVIMP(df.vimp, bin = 50, ft_num = 20)
 df.vimp.avg <- df.vimp.plt$df
 
@@ -115,12 +96,15 @@ write_csv(df.vimp.avg, paste0(runSpec$outP, "/Analyzed_FeatureImportance_avg.csv
 plotVIMP_scatter(df.vimp, top_n = 20, ft_num = 20)
 ```
 
+```{r, fig.width=8, echo=FALSE}
+library(pheatmap)
+plotHeatmap(df.vimp.plt$df, df.orig)
+```
 
 ## 3. Hyper-parameters
 
 ```{r, message=FALSE, echo=FALSE}
 df.grid <- getResults(project_home, project_name, "grid")
-df.grid <- df.grid %>% select(-n_estimators)
 plotGridS(df.grid)
 ```
 

@@ -40,6 +40,7 @@ df <- read.csv(paste(runSpec$project_home, runSpec$training_data, sep='/') )
 
 if(is.na(runSpec$sample_ID)|is.null(runSpec$sample_ID)|(runSpec$sample_ID=="")){
   print("Use index as sample ID")
+  runSpec$sample_ID <- "RowIndex"
 } else {
   rownames(df) <- as.character(df[[runSpec$sample_ID]])
   stopifnot(runSpec$sample_ID %in% colnames(df))
