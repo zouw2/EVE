@@ -1,6 +1,6 @@
 ---
 title: "Evaluate testing data (survival) - rfsrc"
-author: "Andrew Chang"
+author: "John Doe"
 date: '`r Sys.Date()`'
 output:
   pdf_document:
@@ -12,9 +12,8 @@ Label: os_time
 
 ```{r}
 ## user input
-project_home <- "~/EVE/tests"
+project_home <- "~/EVE/examples"
 project_name <- "rfsrc_outCV_test"
-## end of user input
 ```
 
 
@@ -58,6 +57,7 @@ plt <- plotHR(df.preval, Brier = T)
 plt$overall +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
+
 Note for the **HR plot**: A HR value (per seed) is calculated by comparing the survival time between 'long' and 'short' survivors. These two group is defined by splitting samples based on _median_ predicted risk score; group_0 is predicted risk scores > median, which can be viewed as 'short survivors'. On the other hand, group_1 can be viewed as 'long survivors'. If the prediction is reasonable, the hazard ratio of group_1/group_0 should be < 1. The actual function used in calculating HR is ```coxph(Surv(time, status) ~ group.binary, df)```.
 
 
@@ -100,7 +100,10 @@ df.vimp.avg <- df.vimp.plt$df
 write_csv(df.vimp.avg, paste0(runSpec$outP, "/Analyzed_FeatureImportance_avg.csv"))
 ```
 
-
+```{r, fig.width=8, echo=FALSE}
+library(pheatmap)
+plotHeatmap(df.vimp.plt$df, df.orig)
+```
 
 
 

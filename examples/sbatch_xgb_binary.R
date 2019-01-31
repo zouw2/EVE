@@ -6,12 +6,12 @@
 ################
 runSpec <- list(
   seed_base = 1000,
-  num_seeds = 2,
+  num_seeds = 4,
   num_CV = 3, # -1 for LOOCV
 
-  project_home = "~/EVE/tests",
-  project_name = "xgboost_binary_outCV_test_v2",  
-  training_data = "data/test_binaryclass_tcga_brca_weightcol.csv", 
+  project_home = "~/EVE/examples",
+  project_name = "xgboost_binary_outCV_test",  
+  training_data = "data/test_binaryclass_tcga_brca.csv", 
   label_name = "pam50_RNAseq", 
   sample_ID = "Patient_ID", 
   surv_col = NA, 

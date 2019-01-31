@@ -1,6 +1,6 @@
 ---
 title: "Evaluate testing data (survival) - lasso"
-author: "Andrew Chang"
+author: "John Doe"
 date: '`r Sys.Date()`'
 output:
   pdf_document:
@@ -13,7 +13,7 @@ Labels: os_time
 
 ```{r}
 ## user input
-project_home <- "~/EVE/tests"
+project_home <- "~/EVE/examples"
 project_name <- "lasso_survival_outCV_test"
 ```
 
@@ -52,15 +52,7 @@ cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
 
 ## 1. Scores
 
-`average = T`: scores are based on pre-validation (combine predictions from all CVs per job and then calculate a single score per job). 
-
-`average = F`: report all the scores from each CV across entire jobs. 
-
-## 1. Scores
-
-### 1.1 uncalibrated average
-
-```{r, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+```{r, fig.width=4, fig.height=4, echo=FALSE, message=FALSE, warning=FALSE}
 plt <- plotHR(df.preval)
 plt$overall +
   theme(axis.title.x=element_blank(),
@@ -68,13 +60,15 @@ plt$overall +
         axis.ticks.x=element_blank())
 ```
 
+Note for the **HR plot**: A HR value (per seed) is calculated by comparing the survival time between 'long' and 'short' survivors. These two group is defined by splitting samples based on _median_ predicted risk score; group_0 is predicted risk scores > median, which can be viewed as 'short survivors'. On the other hand, group_1 can be viewed as 'long survivors'. If the prediction is reasonable, the hazard ratio of group_1/group_0 should be < 1. The actual function used in calculating HR is ```coxph(Surv(time, status) ~ group.binary, df)```.
+
 
 The following plot is to quickly see how well the prediction can separate long and short survivor. 
 ```{r, echo=FALSE}
 seed <- min(df.preval$seed) ## default chooses smaller seed.
 
 df.in <- df.preval %>% 
-  filter(seed==seed) %>% # seed==1001
+  filter(seed==seed) %>% 
   mutate(pred.binary = ifelse(pred < median(pred), 1, 0))
 
 fit1 <- survfit(Surv(col_surv, col_event) ~ pred.binary, data = df.in)
@@ -97,7 +91,7 @@ barplot(tail(sort(table(df.vimp$feature)), 20),
 (currently only Lasso has this graph)
 
 
-```{r}
+```{r, echo=FALSE}
 df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 10)
 ## plot
 df.vimp.plt$plt.dist.f +
@@ -106,5 +100,8 @@ df.vimp.plt$plt.fts.f +
   ggtitle("Top Features")
 ```
 
-
+```{r, fig.width=8, echo=FALSE}
+library(pheatmap)
+plotHeatmap(df.vimp.plt$df, df.orig)
+```
 

@@ -1,6 +1,6 @@
 ---
 title: "Evaluate testing data (regression) - xgboost"
-author: "Andrew Chang"
+author: "John Doe"
 date: '`r Sys.Date()`'
 output:
   pdf_document:
@@ -10,10 +10,9 @@ output:
 
 Labels: os_time
 
-
 ```{r}
 ## user input
-project_home <- "~/EVE/tests"
+project_home <- "~/EVE/examples"
 project_name <- "xgboost_regression_outCV_test"
 ```
 
@@ -67,29 +66,12 @@ knitr::kable(eval.minmax(plt$df.scores))
 ### correlation
 
 ```{r, echo=FALSE}
-size <- max(df.preval$size) ## default is total feature size. User can choose any RFE size
-seed <- min(df.preval$seed) ## default chooses smaller seed.
-
-df.in <- df.preval %>% filter(seed == seed, size == size)
-lb_name <- as.name(runSpec$label_name)
-ggplot(data = df.in, 
-       aes_string(x="pred", y = lb_name)) + 
-  geom_point() 
-```
-
-```{r, echo=FALSE}
-lb_name <- as.name(runSpec$label_name)
-df.preval %>% 
-  group_by(seed, size) %>% 
-  summarise(corr = cor(!!lb_name, pred)) %>% 
-  summarise(cor.avg = mean(corr),
-            cor.sdt = sd(corr))
+correlation(df.preval)
 ```
 
 ## 2. Important Features
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
-#df.vimp.plt <- plotVIMP(df.vimp, bin = 50)
 df.vimp.plt <- plotVIMP(df.vimp, bin = 50)
 df.vimp.avg <- df.vimp.plt$df
 
@@ -107,12 +89,15 @@ write_csv(df.vimp.avg, paste0(runSpec$outP, "/Analyzed_FeatureImportance_avg.csv
 plotVIMP_scatter(df.vimp, top_n = 20)
 ```
 
+```{r, fig.width=8, echo=FALSE}
+library(pheatmap)
+plotHeatmap(df.vimp.plt$df, df.orig)
+```
 
 ## 3. Hyper-parameters
 
 ```{r, message=FALSE, echo=FALSE}
 df.grid <- getResults(project_home, project_name, "grid")
-#df.grid <- df.grid %>% select(-n_estimators)
 plotGridS(df.grid)
 ```
 
