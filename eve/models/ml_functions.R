@@ -238,7 +238,7 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
 
 
 rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed, 
-                      RFE_criteria = "permute", outputPrediction = 'chf'){
+                      RFE_criteria = "permute", outputPrediction = 'chf', ...){
   require(prodlim)
   require(survival)
   
@@ -254,7 +254,7 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
     r1 <- randomForestSRC::rfsrc(Surv(col_surv, col_event) ~ ., 
                                  data = cbind(X_train[, currfl,drop=F], Y_train), 
                                  importance = RFE_criteria, ## runSpec$RFE_criteria, currently fix it to permute
-                                 seed = seed) 
+                                 seed = seed, ...) 
     
     importance <- r1$importance
     stopifnot(all(sort(names(importance)) == sort(currfl)))

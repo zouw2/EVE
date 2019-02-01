@@ -54,6 +54,20 @@ x <- df[,!(colnames(df) %in% col2drop)]
 y <- df[,c(runSpec$surv_col, runSpec$event_col)]
 colnames(y) <- c("col_surv", "col_event")
 
+stopifnot(all(y[, 1] > 0))
+stopifnot(all(y[, 2] %in% c(0, 1)))
+
+if(is.null(runSpec$ntime)) {
+  runSpec$ntime <- 30 # if a user did not specify ntime, just ask for the predicted survival prob at 30 time points, which is decided by rfsrc()
+}else{
+  if( length(runSpec$ntime) > 1 ) { # it is a vector
+    stopifnot(!any(is.na(runSpec$ntime)))
+    stopifnot(max(runSpec$ntime) <= max(y[, 1]))
+  }else{  
+    stopifnot( length(runSpec$ntime) < length(unique(y[y[, 2]==1, 1]) ) )
+  }
+}
+
 ###########################
 ## handle input features ##
 ###########################
@@ -126,7 +140,12 @@ for (cv.idx in cvList){
     X_test  = x[ cv.idx, featureList, drop=F]
     Y_test  = y[ cv.idx, ]
     print(paste('using', paste(head(cv.idx, 10), collapse=','),',etc, as validation' ))
-    df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed)
+
+    if( (length(runSpec$ntime) ==1 && runSpec$ntime > 0) || length(runSpec$ntime) > 1 ) {
+      df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed, ntime=runSpec$ntime)
+    }else{
+      df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed,outputPrediction='') # do not save predicted survival prob
+    }
     
     df_vimp_tmp <- df.out$df_vimp
     df_pred_tmp <- df.out$df_pred
@@ -147,7 +166,13 @@ for (cv.idx in cvList){
     X_test  = x[ cv.idx, featureList, drop=F]
     Y_test  = y[ cv.idx, ]
     print(paste('using', paste(head(cv.idx, 10), collapse=','),',etc, as validation' ))
-    df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed)
+#    df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed)
+    
+    if( (length(runSpec$ntime) ==1 && runSpec$ntime > 0) || length(runSpec$ntime) > 1 ) {
+      df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed, ntime=runSpec$ntime)
+    }else{
+      df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed,outputPrediction='') # do not save predicted survival prob
+    }
     
     df_vimp_tmp <- df.out$df_vimp
     df_pred_tmp <- df.out$df_pred
