@@ -7,13 +7,12 @@
 
 #' Main functions
 #' require 'runSpec' in the environment
-
 get_Brier <- function(df.preval){
   df.survprob <- df.preval %>% 
     select(seed, cv, size, surv_prob, surv_prob.times) %>% 
     group_by(seed, size, cv) %>% 
     nest() %>%
-    mutate(data = map(data, ~ surv_split(.)))
+    mutate(data = map(data, ~ surv_split(.))) ## very slow here, need improvement
   
   df.surv.all <- data.frame()
   seeds <- unique(df.survprob$seed)
@@ -46,7 +45,8 @@ get_Brier <- function(df.preval){
   return(aggB)
 }
 
-
+## ToDo:
+## This step is inefficient and time consuming
 surv_split <- function(df){
   df.out <- separate(df, surv_prob, 
                      into = df$surv_prob.times[[1]], sep=",") %>% 
@@ -73,22 +73,22 @@ get_times <- function(df){
 }
 
 fillInMissingProbWithNeighbor <- function(x, cols, pattern='^X[\\d\\.]+$', method = c('previousEstimate', 'LinearInterpolation' )){
+  ## x=a$data[[1]]
   ## ToDO: temporarily hack, need to improve the code
   if(!grepl("^X", colnames(x)[1])){
     colnames(x) <- paste0("X", colnames(x))
     cols <- paste0("X", cols)
   }
-  
+
   extra <- setdiff(colnames(x), cols)
   if(length(extra) > 0) stop(paste('unit run matrix contains unexpected column', paste(extra, collapse = ',')))
   
   if(all(cols %in% colnames(x))) return(x[, cols, drop=F])
   
   stopifnot(! 'one' %in% colnames(x))
-  
   colN <- grep(pattern, cols, perl=T, value=T)
-  
   tofill <- setdiff(colN, colnames(x))
+
   #  toaddBack <- setdiff(colnames(x), cols)
   if(method == 'LinearInterpolation'){
     fillin <- sapply(tofill, function(v, timeAvailable = as.numeric( gsub('^X','', setdiff(colN, tofill), perl=T))){
@@ -129,6 +129,13 @@ fillInMissingProbWithNeighbor <- function(x, cols, pattern='^X[\\d\\.]+$', metho
       
     })
     
+    ## ToDo: temparaily fix
+    ## There is a bug, for example, 
+    ## if last time point is imputed, the column name will become X639.X639
+    ## the temp fix is to remove any column names that has second ".X", then remove everything after
+    fillin <- data.frame(t(unlist(fillin)))
+    colnames(fillin) <- gsub("\\.X.*", "", colnames(fillin))
+    #names(fillin) <- gsub("\\.X.*", "", names(fillin))
     #  colnames(fillin ) <- tofill
     stopifnot(all(colnames(fillin) == tofill))
     x <- cbind(x, fillin)
@@ -147,7 +154,7 @@ fillInMissingProbWithNeighbor <- function(x, cols, pattern='^X[\\d\\.]+$', metho
       if(all(timeAvailable > v)) return('one') # earlier than any observed event time, the survival prob will be set to 1
       i <- max( which(timeAvailable < v)  )
       v1 <- paste('X', timeAvailable[i], sep='')
-      browser()
+      #browser()
       #    print(paste('fill in time', v, 'survival probability with those from time', v1))
       v1
     })
@@ -168,6 +175,8 @@ fillInMissingProbWithNeighbor <- function(x, cols, pattern='^X[\\d\\.]+$', metho
   #stopifnot( all(cols %in% colnames(x)) )
   #  x[, c(cols, toaddBack),drop=F]
   x.interpolate <- x[, cols, drop=F]
+  #x.interpolate <- unlist(x.interpolate, use.names = F)
+
   return(x.interpolate)
 }
 
