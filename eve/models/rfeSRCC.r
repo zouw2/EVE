@@ -58,7 +58,7 @@ stopifnot(all(y[, 1] > 0))
 stopifnot(all(y[, 2] %in% c(0, 1)))
 
 if(is.null(runSpec$ntime)) {
-  runSpec$ntime <- 30 # if a user did not specify ntime, just ask for the predicted survival prob at 30 time points, which is decided by rfsrc()
+  runSpec$ntime <- 0 # if a user did not specify ntime, just ask for the predicted survival prob at 30 time points, which is decided by rfsrc()
 }else{
   if( length(runSpec$ntime) > 1 ) { # it is a vector
     stopifnot(!any(is.na(runSpec$ntime)))
