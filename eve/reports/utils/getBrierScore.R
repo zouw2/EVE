@@ -8,11 +8,13 @@
 #' Main functions
 #' require 'runSpec' in the environment
 get_Brier <- function(df.preval){
+  # df.survprob <- df.preval %>% 
+  #   select(seed, cv, size, surv_prob, surv_prob.times) %>% 
+  #   group_by(seed, size, cv) %>% 
+  #   nest() %>%
+  #   mutate(data = map(data, ~ surv_split(.))) ## very slow here, need improvement
   df.survprob <- df.preval %>% 
-    select(seed, cv, size, surv_prob, surv_prob.times) %>% 
-    group_by(seed, size, cv) %>% 
-    nest() %>%
-    mutate(data = map(data, ~ surv_split(.))) ## very slow here, need improvement
+    rename(data = surv_prob)
   
   df.surv.all <- data.frame()
   seeds <- unique(df.survprob$seed)

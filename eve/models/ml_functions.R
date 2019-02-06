@@ -254,7 +254,7 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
     r1 <- randomForestSRC::rfsrc(Surv(col_surv, col_event) ~ ., 
                                  data = cbind(X_train[, currfl,drop=F], Y_train), 
                                  importance = RFE_criteria, ## runSpec$RFE_criteria, currently fix it to permute
-                                 seed = seed, ...) 
+                                 seed = seed, ...) ## use mc.cores = 1 when running rfsrc in rstudio in rescomp
     
     importance <- r1$importance
     stopifnot(all(sort(names(importance)) == sort(currfl)))
@@ -278,7 +278,11 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
       pred2 <- data.frame(pred2)
       rownames(pred2) <- rownames(X_test)
       pred2.times <- as.character( pred$time.interest )
-      pred2 <- apply(pred2 , 1, paste, collapse = "," ) ## squeeze all columns to one single column
+      colnames(pred2) <- pred2.times
+      ## break pred2 rows into list, each item is one row, 
+      ## this is to help squeeze the probability prediction values into one single cell
+      pred2 <- lapply(c(1:dim(pred2)[1]), function(x) pred2[x,]) 
+      #pred2 <- apply(pred2 , 1, paste, collapse = "," ) ## squeeze all columns to one single column
     }
     
     ## get brier score
@@ -293,7 +297,7 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
     df_pred_tmp <- data.frame(pred = pred$predicted, 
                               size = s,
                               BrierScore = ifelse( dim(X_test)[1] > 1, ibrier['randomforestSRC', 1], NA),
-                              surv_prob = pred2,
+                              #surv_prob = pred2,
                               stringsAsFactors = F, 
                               row.names=NULL)
     
@@ -301,7 +305,8 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
     ## save surv_prob times, because different CV may have different predicted prob times
     ## will unlist this information during harvesting
     ## this is to make the workflow and output format consistent with xgboost
-    df_pred_tmp$surv_prob.times = list(pred2.times) 
+    df_pred_tmp$surv_prob <- pred2
+    #df_pred_tmp$surv_prob.times = list(pred2.times) 
     
     df_vimp <- rbind(df_vimp, df_vimp_tmp)
     df_pred <- rbind(df_pred, df_pred_tmp)

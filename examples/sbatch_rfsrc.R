@@ -10,7 +10,7 @@ runSpec <- list(
   num_CV = 3, # -1 for LOOCV
 
   project_home = "~/EVE/examples",
-  project_name = "rfsrc_outCV_test",  
+  project_name = "rfsrc_outCV_test2",  
   training_data = "data/test_regr_surv_tcga_brca.csv", 
   label_name = NA, 
   sample_ID = "Patient_ID", 
@@ -34,14 +34,14 @@ runSpec <- list(
 # User also has to ensure there is no NA in the data.
 
 ## Example of how to modify input data
-# library(dplyr)
-# df <- readr::read_csv(paste0(runSpec$project_home, "/", runSpec$training_data))
-# df.mod <- df %>% 
-#   mutate(os_time = os_time + 1) ## create a dummy feature
-# modified_filename <- "data/df_dummy_modified.csv"
+library(dplyr)
+df <- readr::read_csv(paste0(runSpec$project_home, "/", runSpec$training_data))
+df.mod <- df %>%
+ filter(os_time >0 ) ## remove samples with survival time = 0
 
-# runSpec$training_data <- modified_filename
-# readr::write_csv(df.mod, paste0(runSpec$project_home, "/", runSpec$training_data))
+modified_filename <- "data/df_dummy_modified.csv"
+runSpec$training_data <- modified_filename
+readr::write_csv(df.mod, paste0(runSpec$project_home, "/", runSpec$training_data))
 
 #######################
 ## End of User Input ##
