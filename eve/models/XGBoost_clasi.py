@@ -64,9 +64,24 @@ if runSpec["event_col"] == "NA":
 else:
   col_event = runSpec["event_col"] #"PFS.event" # can be []
 
-######################
-## advanced setting ##
-######################
+## =============================================================================
+## Check whether files already exist, if so, stop the process.
+## =============================================================================
+outP = runSpec["outP"] ## get absolute path
+outP = os.path.expanduser(outP)
+
+out_vimp = outP +"/xgb_vimp_"+label+"_seed"+str(seed)+"_cv"+str(cv_id_curr)+".csv"
+out_preval = outP +"/xgb_prevalidation_"+label+"_seed"+str(seed)+"_cv"+str(cv_id_curr)+".csv"
+out_grid = outP +"/xgb_gridsearch_"+label+"_seed"+str(seed)+"_cv"+str(cv_id_curr)+".csv"
+
+if os.path.exists(out_vimp):
+  #print("File already exist, quitting")
+  sys.exit("File already exist, quitting ...")
+
+## =============================================================================
+## advanced setting 
+## =============================================================================
+
 
 ## read data
 df = pd.read_csv(runSpec["project_home"]+ "/" + runSpec["training_data"])
@@ -247,16 +262,13 @@ df_prevalid2 = pd.merge(df_prevalid, pd.DataFrame({sampleID: df_sampleid}),
     left_index=True, right_index=True)
 
 ## save output to csv
-outP = runSpec["outP"] ## get absolute path
-outP = os.path.expanduser(outP)
-
 if not os.path.exists(outP):
   print("create results path:", outP)
   os.makedirs(outP)
     
-out_vimp = outP +"/xgb_vimp_"+label+"_seed"+str(seed)+"_cv"+str(cv_id_curr)+".csv"
-out_preval = outP +"/xgb_prevalidation_"+label+"_seed"+str(seed)+"_cv"+str(cv_id_curr)+".csv"
-out_grid = outP +"/xgb_gridsearch_"+label+"_seed"+str(seed)+"_cv"+str(cv_id_curr)+".csv"
+#out_vimp = outP +"/xgb_vimp_"+label+"_seed"+str(seed)+"_cv"+str(cv_id_curr)+".csv"
+#out_preval = outP +"/xgb_prevalidation_"+label+"_seed"+str(seed)+"_cv"+str(cv_id_curr)+".csv"
+#out_grid = outP +"/xgb_gridsearch_"+label+"_seed"+str(seed)+"_cv"+str(cv_id_curr)+".csv"
 
 df_vimp.to_csv(out_vimp, index=True)
 df_prevalid2.to_csv(out_preval, index=False)
