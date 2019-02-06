@@ -91,20 +91,20 @@ fillInMissingProbWithNeighbor <- function(x, cols, pattern='^X[\\d\\.]+$', metho
 
   #  toaddBack <- setdiff(colnames(x), cols)
   if(method == 'LinearInterpolation'){
-    fillin <- sapply(tofill, function(v, timeAvailable = as.numeric( gsub('^X','', setdiff(colN, tofill), perl=T))){
+    ta1 <- as.numeric( gsub('^X','', setdiff(colN, tofill), perl=T) )
+    stopifnot(!any(is.na(ta1)))
+    stopifnot(all(ta1 >= 0))
+    
+    fillin <- sapply(tofill, function(v, timeAvailable = sort( ta1 )){
       v <- as.numeric( gsub('^X','', v, perl=T) )
       stopifnot(!is.na(v))
       stopifnot(v >= 0)
-      stopifnot(!any(is.na(timeAvailable)))
-      
       stopifnot(! v %in% timeAvailable )
-      stopifnot(all(timeAvailable >= 0))
       
-      timeAvailable <- sort( timeAvailable )
       if(all(timeAvailable < v)){
         x.last <- x[, paste('X', tail(timeAvailable, 1), sep='')]
-        colnames(x.last) <- paste0("X", v)
-        return( x.last ) # using the last time point
+    #    colnames(x.last) <- paste0("X", v)
+        return( unname(unlist(x.last)) ) # using the last time point
       }
       
       rightTime <- timeAvailable [  min( which(timeAvailable > v))    ]
@@ -118,9 +118,9 @@ fillInMissingProbWithNeighbor <- function(x, cols, pattern='^X[\\d\\.]+$', metho
       }else{
         leftTime <- timeAvailable [  max( which(timeAvailable < v) ) ]
         leftProb <- x[, paste('X', leftTime, sep='')]
-        
+        leftProb <- as.numeric(unlist(leftProb))
       }
-      leftProb <- as.numeric(unlist(leftProb))
+      
       (leftProb * (rightTime -v)  + rightProb * ( v - leftTime ) )/(rightTime - leftTime)
       
       #this is way too slow
@@ -129,6 +129,7 @@ fillInMissingProbWithNeighbor <- function(x, cols, pattern='^X[\\d\\.]+$', metho
       
     })
     
+   if(F){
     ## ToDo: temparaily fix
     ## There is a bug, for example, 
     ## if last time point is imputed, the column name will become X639.X639
@@ -137,6 +138,10 @@ fillInMissingProbWithNeighbor <- function(x, cols, pattern='^X[\\d\\.]+$', metho
     colnames(fillin) <- gsub("\\.X.*", "", colnames(fillin))
     #names(fillin) <- gsub("\\.X.*", "", names(fillin))
     #  colnames(fillin ) <- tofill
+   }
+    
+    if(is.vector(fillin)) fillin <- matrix(fillin, nrow=1, dimnames=list(c(), names(fillin)))
+    
     stopifnot(all(colnames(fillin) == tofill))
     x <- cbind(x, fillin)
     
