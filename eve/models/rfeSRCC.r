@@ -142,7 +142,7 @@ for (cv.idx in cvList){
     print(paste('using', paste(head(cv.idx, 10), collapse=','),',etc, as validation' ))
 
     if( (length(runSpec$ntime) ==1 && runSpec$ntime > 0) || length(runSpec$ntime) > 1 ) {
-      df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed, ntime=runSpec$ntime)
+      df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed) # TODO: pass runSpec$ntime to a function which saves predicted survival probabilities at specific time points, which are consistent across all seeds and cvs
     }else{
       df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed,outputPrediction='') # do not save predicted survival prob
     }
