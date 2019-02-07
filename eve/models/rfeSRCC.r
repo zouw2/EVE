@@ -2,6 +2,9 @@
 #para = c('1001', "~/ml-pipeline/docs/Tutorial/log/survival_rfsrc_outCVs_test4/metainfo.Rdata", '0')
 source('~/EVE/eve/models/ml_functions.R')
 
+print("EVE commit:")
+print(git2r::revparse_single(repo = '~/EVE','HEAD'))
+
 #################
 ## User Inputs ##
 ################# 

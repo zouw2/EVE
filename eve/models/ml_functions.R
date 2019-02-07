@@ -271,7 +271,7 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
     pred <- predict(r1, newdata = X_test[, currfl, drop = F])
     
     ## survival prob
-    pred2.times <- pred2 <- rep(NA, nrow(X_test))
+    pred2.times <- pred2 <- NA
     if ( nchar(outputPrediction) > 0 && outputPrediction %in% names(pred) ) {
       pred2 <- pred[[outputPrediction]]
       if (outputPrediction %in% 'chf'){pred2 <- exp( -pred2 )} # convert cumulative hazard to survival
