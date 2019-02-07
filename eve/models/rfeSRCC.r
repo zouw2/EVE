@@ -3,7 +3,7 @@
 source('~/EVE/eve/models/ml_functions.R')
 
 print("EVE commit:")
-print(git2r::revparse_single(repo = '~/EVE','HEAD'))
+git2r::revparse_single(git2r::repository('~/EVE'),"HEAD") # this line works for R 3.4.3/3.5.1 under rescomp3
 
 #################
 ## User Inputs ##
@@ -30,11 +30,14 @@ if (!file.exists(runSpec$outP)){
 #   cv_id_curr = cv_id_curr
 # )
 # 
+
+outF <- paste0(runSpec$outP, "/rfsrc_rdata_", runSpec$surv_col, "_seed", seed, "_cv", cv_id_curr, ".rdata")
+
 # outF <- paste0(runSpec$outP, '/rfsrc_', paste(unlist(specLocal), collapse="_"), '.rdata')
-# if( file.exists(outF) && T) {
-#   print(paste(outF,'already exits. quitting...'))
-#   q()
-# }
+ if( file.exists(outF) && T) {
+   print(paste(outF,'already exits. quitting...'))
+   q()
+ }
 
 #########################
 ## read & process data ##
@@ -45,9 +48,10 @@ if(is.na(runSpec$sample_ID)|is.null(runSpec$sample_ID)|(runSpec$sample_ID=="")){
   print("Use index as sample ID")
   runSpec$sample_ID <- "RowIndex"
 } else {
-  rownames(df) <- as.character(df[[runSpec$sample_ID]])
+
   stopifnot(runSpec$sample_ID %in% colnames(df))
   stopifnot(!any(duplicated(as.character(df[[runSpec$sample_ID]]))))
+  rownames(df) <- as.character(df[[runSpec$sample_ID]])
 }
 
 col2drop <- c(runSpec$label_name, runSpec$sample_ID,
@@ -63,11 +67,17 @@ stopifnot(all(y[, 2] %in% c(0, 1)))
 if(is.null(runSpec$ntime)) {
   runSpec$ntime <- 0 # if a user did not specify ntime, just ask for the predicted survival prob at 30 time points, which is decided by rfsrc()
 }else{
-  if( length(runSpec$ntime) > 1 ) { # it is a vector
+  if( length(runSpec$ntime) > 1 ) { # a vector of time point to evaluate predicted prob
+    runSpec$ntime <- sort(unique(runSpec$ntime), na.last = NA)
     stopifnot(!any(is.na(runSpec$ntime)))
     stopifnot(max(runSpec$ntime) <= max(y[, 1]))
+    stopifnot( length(runSpec$ntime) < length(unique(y[y[, 'col_event'] ==1, 'col_surv']) ) )
   }else{  
-    stopifnot( length(runSpec$ntime) < length(unique(y[y[, 2]==1, 1]) ) )
+    stopifnot(runSpec$ntime > 1) # number of time points to evaluate predicted prob
+    runSpec$ntime <- unname(quantile(y[y[, 'col_event'] ==1, 'col_surv'], prob = seq(from = 0.05, to= 0.95,length.out=runSpec$ntime), type=2))
+
+    if(is.integer(y[,'col_surv'])) runSpec$ntime <- round(runSpec$ntime, 0)
+
   }
 }
 
@@ -172,7 +182,8 @@ for (cv.idx in cvList){
 #    df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed)
     
     if( (length(runSpec$ntime) ==1 && runSpec$ntime > 0) || length(runSpec$ntime) > 1 ) {
-      df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed, ntime=runSpec$ntime)
+      df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed)
+      df.out$df_pred <- alignProb(df.out$df_pred,  timeNeeded=runSpec$ntime)
     }else{
       df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed,outputPrediction='') # do not save predicted survival prob
     }
@@ -203,7 +214,7 @@ if(!dir.exists(runSpec$outP)){
 #write.csv(df_vimp, out_vimp, row.names = F)
 #write.csv(df_pred, out_preval, row.names = F)
 
-outF <- paste0(runSpec$outP, "/rfsrc_rdata_", runSpec$surv_col, "_seed", seed, "_cv", cv_id_curr, ".rdata")
+
 save(df_pred, df_vimp, file=outF)
 
 end.time <- Sys.time()
