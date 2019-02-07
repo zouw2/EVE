@@ -352,7 +352,7 @@ plotScores <- function(df, label_name, prevalid = TRUE,
     plt1 <- df.scores %>% 
       select(seed, size, Classes, one_of(c("Precision", "Recall", "F1"))) %>% 
       gather(metrics, score, -one_of(c("seed", "size", "Classes"))) %>% 
-      ggplot(aes(x=as.factor(size), y=score, fill=Classes)) + 
+      ggplot(aes(x=as.factor(size), y=score, color=Classes, fill=Classes)) + 
       geom_boxplot() +
       theme_bw() +
       ylab("Prevalidation score across seeds") +
@@ -378,7 +378,7 @@ plotScores <- function(df, label_name, prevalid = TRUE,
     plt1 <- df.scores %>% 
       select(seed, cv, size, Classes, one_of(c("Precision", "Recall", "F1"))) %>% 
       gather(metrics, score, -one_of(c("seed", "cv", "size", "Classes"))) %>% 
-      ggplot(aes(x=as.factor(size), y=score, fill=Classes)) + 
+      ggplot(aes(x=as.factor(size), y=score, color=Classes, fill=Classes)) + 
       geom_boxplot() +
       theme_bw() +
       ylab("All scores across CVs in all seeds") +
