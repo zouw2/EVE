@@ -14,31 +14,32 @@ get_Brier <- function(df.preval){
   #   nest() %>%
   #   mutate(data = map(data, ~ surv_split(.))) ## very slow here, need improvement
   df.survprob <- df.preval %>% 
-    rename(data = surv_prob)
+    rename(data = surv_prob) %>% 
+    unnest()
   
-  df.surv.all <- data.frame()
-  seeds <- unique(df.survprob$seed)
-  for(s in seeds){
-    df.sub <- df.survprob %>% 
-      filter(seed == s) 
-    
-    commonCols <- get_times(df.sub)
-    
-    df.sub <- df.sub %>% 
-      mutate(data = map(data, 
-                        ~ fillInMissingProbWithNeighbor(., commonCols, method = 'LinearInterpolation'))) 
-    df.surv.all <- rbind(df.surv.all, df.sub)
-  }
-  df.surv.all <- df.surv.all %>% unnest()
+#  df.surv.all <- data.frame()
+#  seeds <- unique(df.survprob$seed)
+#  for(s in seeds){
+#    df.sub <- df.survprob %>% 
+#      filter(seed == s) 
+#    
+#    commonCols <- get_times(df.sub)
+#    
+#    df.sub <- df.sub %>% 
+#      mutate(data = map(data, 
+#                        ~ fillInMissingProbWithNeighbor(., commonCols, method = 'LinearInterpolation'))) 
+#    df.surv.all <- rbind(df.surv.all, df.sub)
+#  }
+  #df.surv.all <- df.survprob #df.surv.all %>% unnest()
   if(is.na(runSpec$sample_ID)) runSpec$sample_ID <- "RowIndex"
-  df.surv.all[[runSpec$sample_ID]] <- df.preval[[runSpec$sample_ID]]
+  df.survprob[[runSpec$sample_ID]] <- df.preval[[runSpec$sample_ID]]
   
   seed0 <- unique(df.preval$seed)[1]
   size0 <- unique(df.preval$size)[1]
   df.y <- df.preval %>% 
     filter(seed == seed0, size == size0) %>% 
     select(col_surv, col_event, !!as.name(runSpec$sample_ID))
-  aggB <- aggBrier(data.frame(df.surv.all), 
+  aggB <- aggBrier(data.frame(df.survprob), 
                    data.frame(df.y),
                    outcome.var = c("col_surv", "col_event"),
                    idVar = runSpec$sample_ID)
