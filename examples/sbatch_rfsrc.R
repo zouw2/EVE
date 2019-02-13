@@ -10,7 +10,7 @@ runSpec <- list(
   num_CV = 3, # -1 for LOOCV
 
   project_home = "~/EVE/examples",
-  project_name = "rfsrc_outCV_test2",  
+  project_name = "rfsrc_outCV_test",  
   training_data = "data/test_regr_surv_tcga_brca.csv", 
   label_name = NA, 
   sample_ID = "Patient_ID", 
@@ -20,6 +20,7 @@ runSpec <- list(
   RFE_step = 10, 
   
   engine = "rfeSRCC.r", ## ML engine
+  ntime = 10, ## (for Brier score calculation; 0 means don't calculate Brier)
   RFE_criteria = 'permute',  
   split_CVs = T,
   queue_priority = "short" ## short, medium, long
