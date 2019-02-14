@@ -1,9 +1,16 @@
 #module load apps/R
 #para = c('1001', "~/2OBD/PDL1mab/go28915_oak/ihc/log/digital_pred_path1/metainfo.Rdata", '0')
-para = c('1002', "~/Biomarker/BDAT/IMpassion130/log/IMpassion130_FMI_PFS_original/metainfo.Rdata", '1')
+#para = c('1002', "~/Biomarker/BDAT/IMpassion130/log/IMpassion130_FMI_PFS_original/metainfo.Rdata", '1')
 library(glmnet)
 library(survival)
 source('~/EVE/eve/models/ml_functions.R')
+
+# if( ! (R.version$major >= 3 && R.version$minor >= 5.1 )) {
+#   stop(paste('reporting needs R version 3.5.1'))
+# }
+# 
+# print("EVE commit:")
+# git2r::revparse_single(git2r::repository('~/EVE'),"HEAD") # this line works for R 3.4.3/3.5.1 under rescomp3
 
 #################
 ## User Inputs ##

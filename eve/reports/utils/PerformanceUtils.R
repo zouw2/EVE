@@ -1,3 +1,7 @@
+if( ! (R.version$major >= 3 && R.version$minor >= 5.1 )) {
+  stop(paste('reporting needs R version >= 3.5.1'))
+}
+
 #' Read a single object from .rdata 
 #' R based ML engines save outputs as .rdata, therefore,
 #' we need to be able to parse those output
@@ -352,7 +356,7 @@ plotScores <- function(df, label_name, prevalid = TRUE,
     plt1 <- df.scores %>% 
       select(seed, size, Classes, one_of(c("Precision", "Recall", "F1"))) %>% 
       gather(metrics, score, -one_of(c("seed", "size", "Classes"))) %>% 
-      ggplot(aes(x=as.factor(size), y=score, fill=Classes)) + 
+      ggplot(aes(x=as.factor(size), y=score, color=Classes, fill=Classes)) + 
       geom_boxplot() +
       theme_bw() +
       ylab("Prevalidation score across seeds") +
@@ -378,7 +382,7 @@ plotScores <- function(df, label_name, prevalid = TRUE,
     plt1 <- df.scores %>% 
       select(seed, cv, size, Classes, one_of(c("Precision", "Recall", "F1"))) %>% 
       gather(metrics, score, -one_of(c("seed", "cv", "size", "Classes"))) %>% 
-      ggplot(aes(x=as.factor(size), y=score, fill=Classes)) + 
+      ggplot(aes(x=as.factor(size), y=score, color=Classes, fill=Classes)) + 
       geom_boxplot() +
       theme_bw() +
       ylab("All scores across CVs in all seeds") +

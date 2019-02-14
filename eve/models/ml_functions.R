@@ -238,7 +238,7 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
 
 
 rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed, 
-                      RFE_criteria = "permute", outputPrediction = 'chf'){
+                      RFE_criteria = "permute", outputPrediction = 'chf', ...){
   require(prodlim)
   require(survival)
   
@@ -254,7 +254,7 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
     r1 <- randomForestSRC::rfsrc(Surv(col_surv, col_event) ~ ., 
                                  data = cbind(X_train[, currfl,drop=F], Y_train), 
                                  importance = RFE_criteria, ## runSpec$RFE_criteria, currently fix it to permute
-                                 seed = seed) 
+                                 seed = seed, ...) ## use mc.cores = 1 when running rfsrc in rstudio in rescomp
     
     importance <- r1$importance
     stopifnot(all(sort(names(importance)) == sort(currfl)))
@@ -271,14 +271,18 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
     pred <- predict(r1, newdata = X_test[, currfl, drop = F])
     
     ## survival prob
-    pred2 <- NULL
+    pred2.times <- pred2 <- NA
     if ( nchar(outputPrediction) > 0 && outputPrediction %in% names(pred) ) {
       pred2 <- pred[[outputPrediction]]
       if (outputPrediction %in% 'chf'){pred2 <- exp( -pred2 )} # convert cumulative hazard to survival
       pred2 <- data.frame(pred2)
       rownames(pred2) <- rownames(X_test)
       pred2.times <- as.character( pred$time.interest )
-      pred2 <- apply(pred2 , 1, paste, collapse = "," ) ## squeeze all columns to one single column
+      colnames(pred2) <- pred2.times
+      ## break pred2 rows into list, each item is one row, 
+      ## this is to help squeeze the probability prediction values into one single cell
+      pred2 <- lapply(c(1:dim(pred2)[1]), function(x) pred2[x,]) 
+      #pred2 <- apply(pred2 , 1, paste, collapse = "," ) ## squeeze all columns to one single column
     }
     
     ## get brier score
@@ -293,7 +297,7 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
     df_pred_tmp <- data.frame(pred = pred$predicted, 
                               size = s,
                               BrierScore = ifelse( dim(X_test)[1] > 1, ibrier['randomforestSRC', 1], NA),
-                              surv_prob = pred2,
+                              #surv_prob = pred2,
                               stringsAsFactors = F, 
                               row.names=NULL)
     
@@ -301,7 +305,8 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
     ## save surv_prob times, because different CV may have different predicted prob times
     ## will unlist this information during harvesting
     ## this is to make the workflow and output format consistent with xgboost
-    df_pred_tmp$surv_prob.times = list(pred2.times) 
+    df_pred_tmp$surv_prob <- pred2
+    #df_pred_tmp$surv_prob.times = list(pred2.times) 
     
     df_vimp <- rbind(df_vimp, df_vimp_tmp)
     df_pred <- rbind(df_pred, df_pred_tmp)
@@ -309,4 +314,133 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
   
   return(list(df_vimp = df_vimp,
               df_pred = df_pred))
+}
+
+
+alignProb <- function(pred, timeNeeded){
+  stopifnot(is.data.frame(pred$surv_prob[[1]]))
+  timeAval <- colnames( pred$surv_prob[[1]] )
+  stopifnot( all(sapply(pred$surv_prob, function(d) all(colnames(d) == timeAval))) ) # all elements have the same columns (probabilities from the same set of time points), as these are from the same cv
+  
+  p2 <- do.call(rbind, pred$surv_prob)
+  stopifnot(all(row.names(p2) == row.names(pred)))
+  
+  colnames(p2) <- make.names(colnames(p2))
+  p3 <- fillInMissingProbWithNeighbor(p2, cols=timeNeeded, method='LinearInterpolation')
+  stopifnot(all(row.names(p3) == row.names(p2)))
+  
+  colnames(p3) <- gsub('^X','', colnames(p3))
+  stopifnot(is.data.frame(p3))
+  
+  pred$surv_prob <- lapply(1:nrow(p3), function(x) p3[x,,drop=F]) 
+  pred
+}
+
+fillInMissingProbWithNeighbor <- function(x, cols, pattern='^X[\\d\\.]+$', method = c('previousEstimate', 'LinearInterpolation' )){
+  
+  stopifnot(all(grepl('^X', colnames(x), perl=T)))
+  cols <- paste0("X", cols)
+  
+  extra <- setdiff(colnames(x), cols)
+  if(length(extra) > 0) print(paste('survival probs from the following timepoints are ignored in pre-validation brier score calculation', paste(extra, collapse = ',')))
+  
+  if(all(cols %in% colnames(x))) return(x[, cols, drop=F])
+  
+  stopifnot(! 'one' %in% colnames(x) )
+
+  tofill <- setdiff(cols, colnames(x))
+
+  if(length(tofill)> 0 && method == 'LinearInterpolation'){
+    ta1 <- as.numeric( gsub('^X','', colnames(x), perl=T) )
+    stopifnot(!any(is.na(ta1)))
+    stopifnot(all(ta1 >= 0))
+    
+    fillin <- sapply(tofill, function(v, timeAvailable = sort( ta1 )){
+      v <- as.numeric( gsub('^X','', v, perl=T) )
+
+      stopifnot(!is.na(v))
+      stopifnot(v >= 0)
+      stopifnot(! v %in% timeAvailable )
+      
+      if(all(timeAvailable < v)){
+        x.last <- x[, paste('X', tail(timeAvailable, 1), sep='')]
+        #    colnames(x.last) <- paste0("X", v)
+        return( unname(unlist(x.last)) ) # using the last time point
+      }
+      
+      rightTime <- timeAvailable [  min( which(timeAvailable > v))    ]
+      rightProb <- x[, paste('X', rightTime, sep='')]
+      rightProb <- as.numeric(unlist(rightProb))
+      
+      if(all(timeAvailable > v)) {
+        stopifnot(min(timeAvailable) > 0)
+        leftProb <- rep(1, nrow(x))
+        leftTime <- 0
+      }else{
+        leftTime <- timeAvailable [  max( which(timeAvailable < v) ) ]
+        leftProb <- x[, paste('X', leftTime, sep='')]
+        leftProb <- as.numeric(unlist(leftProb))
+      }
+      
+      (leftProb * (rightTime -v)  + rightProb * ( v - leftTime ) )/(rightTime - leftTime)
+      
+      #this is way too slow
+      #return( apply(cbind(leftProb, rightProb), 1, function(p){approx(x=c(leftTime, rightTime), y=p, xout=v )$y}) )
+      
+      
+    })
+    
+    if(F){
+      ## ToDo: temparaily fix
+      ## There is a bug, for example, 
+      ## if last time point is imputed, the column name will become X639.X639
+      ## the temp fix is to remove any column names that has second ".X", then remove everything after
+      fillin <- data.frame(t(unlist(fillin)))
+      colnames(fillin) <- gsub("\\.X.*", "", colnames(fillin))
+      #names(fillin) <- gsub("\\.X.*", "", names(fillin))
+      #  colnames(fillin ) <- tofill
+    }
+    
+    if(is.vector(fillin)) fillin <- matrix(fillin, nrow=1, dimnames=list(c(), names(fillin)))
+    
+    stopifnot(all(colnames(fillin) == tofill))
+    x <- cbind(x, fillin)
+    
+  }
+  
+  if(method == 'previousEstimate'){
+    stop('this option may be outdated for the current intended use of this function')
+    fillin<- sapply(tofill, function(v, timeAvailable = as.numeric( gsub('^X','', setdiff(cols, tofill), perl=T) ) ){
+      v <- as.numeric( gsub('^X','', v, perl=T) )
+      stopifnot(!is.na(v))
+      stopifnot(!any(is.na(timeAvailable)))
+      
+      stopifnot(! v %in% timeAvailable )
+      timeAvailable <- sort(timeAvailable)
+      
+      if(all(timeAvailable > v)) return('one') # earlier than any observed event time, the survival prob will be set to 1
+      i <- max( which(timeAvailable < v)  )
+      v1 <- paste('X', timeAvailable[i], sep='')
+      #browser()
+      #    print(paste('fill in time', v, 'survival probability with those from time', v1))
+      v1
+    })
+    
+    if(! all( fillin %in% c('one', colnames(x)) )) {
+      stop(paste('column', paste(setdiff(fillin, colnames(x)), collapse = ','), 'could not be found'))
+    }
+    
+    
+    x1 <- cbind(x, one=1)[, fillin, drop=F]
+    colnames(x1) <- tofill # so even a column of survival probabilities of 1 is filled, the column name does not indicate this column is for time 0
+    
+    x <- cbind(x, x1)
+  }
+  
+  
+  
+  stopifnot( all(cols %in% colnames(x)) )
+  x.interpolate <- x[, cols, drop=F]
+
+  return(x.interpolate)
 }

@@ -2,6 +2,14 @@
 #para = c('1001', "~/ml-pipeline/docs/Tutorial/log/survival_rfsrc_outCVs_test4/metainfo.Rdata", '0')
 source('~/EVE/eve/models/ml_functions.R')
 
+
+#if( ! (R.version$major >= 3 && R.version$minor >= 5.1 )) {
+#  stop(paste('reporting needs R version 3.5.1'))
+#}
+
+#print("EVE commit:")
+#git2r::revparse_single(git2r::repository('~/EVE'),"HEAD") # this line works for R 3.4.3/3.5.1 under rescomp3
+
 #################
 ## User Inputs ##
 ################# 
@@ -27,11 +35,14 @@ if (!file.exists(runSpec$outP)){
 #   cv_id_curr = cv_id_curr
 # )
 # 
+
+outF <- paste0(runSpec$outP, "/rfsrc_rdata_", runSpec$surv_col, "_seed", seed, "_cv", cv_id_curr, ".rdata")
+
 # outF <- paste0(runSpec$outP, '/rfsrc_', paste(unlist(specLocal), collapse="_"), '.rdata')
-# if( file.exists(outF) && T) {
-#   print(paste(outF,'already exits. quitting...'))
-#   q()
-# }
+ if( file.exists(outF) && T) {
+   print(paste(outF,'already exits. quitting...'))
+   q()
+ }
 
 #########################
 ## read & process data ##
@@ -42,9 +53,10 @@ if(is.na(runSpec$sample_ID)|is.null(runSpec$sample_ID)|(runSpec$sample_ID=="")){
   print("Use index as sample ID")
   runSpec$sample_ID <- "RowIndex"
 } else {
-  rownames(df) <- as.character(df[[runSpec$sample_ID]])
+
   stopifnot(runSpec$sample_ID %in% colnames(df))
   stopifnot(!any(duplicated(as.character(df[[runSpec$sample_ID]]))))
+  rownames(df) <- as.character(df[[runSpec$sample_ID]])
 }
 
 col2drop <- c(runSpec$label_name, runSpec$sample_ID,
@@ -53,6 +65,26 @@ col2drop <- c(runSpec$label_name, runSpec$sample_ID,
 x <- df[,!(colnames(df) %in% col2drop)]
 y <- df[,c(runSpec$surv_col, runSpec$event_col)]
 colnames(y) <- c("col_surv", "col_event")
+
+stopifnot(all(y[, 1] > 0))
+stopifnot(all(y[, 2] %in% c(0, 1)))
+
+if(is.null(runSpec$ntime)) {
+  runSpec$ntime <- 0 # if a user did not specify ntime, just ask for the predicted survival prob at 30 time points, which is decided by rfsrc()
+}else{
+  if( length(runSpec$ntime) > 1 ) { # a vector of time point to evaluate predicted prob
+    runSpec$ntime <- sort(unique(runSpec$ntime), na.last = NA)
+    stopifnot(!any(is.na(runSpec$ntime)))
+    stopifnot(max(runSpec$ntime) <= max(y[, 1]))
+    stopifnot( length(runSpec$ntime) < length(unique(y[y[, 'col_event'] ==1, 'col_surv']) ) )
+  }else{  
+    stopifnot(runSpec$ntime > 1) # number of time points to evaluate predicted prob
+    runSpec$ntime <- unname(quantile(y[y[, 'col_event'] ==1, 'col_surv'], prob = seq(from = 0.05, to= 0.95,length.out=runSpec$ntime), type=2))
+
+    if(is.integer(y[,'col_surv'])) runSpec$ntime <- round(runSpec$ntime, 0)
+
+  }
+}
 
 ###########################
 ## handle input features ##
@@ -126,7 +158,12 @@ for (cv.idx in cvList){
     X_test  = x[ cv.idx, featureList, drop=F]
     Y_test  = y[ cv.idx, ]
     print(paste('using', paste(head(cv.idx, 10), collapse=','),',etc, as validation' ))
-    df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed)
+
+    if( (length(runSpec$ntime) ==1 && runSpec$ntime > 0) || length(runSpec$ntime) > 1 ) {
+      df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed) # TODO: pass runSpec$ntime to a function which saves predicted survival probabilities at specific time points, which are consistent across all seeds and cvs
+    }else{
+      df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed,outputPrediction='') # do not save predicted survival prob
+    }
     
     df_vimp_tmp <- df.out$df_vimp
     df_pred_tmp <- df.out$df_pred
@@ -147,7 +184,14 @@ for (cv.idx in cvList){
     X_test  = x[ cv.idx, featureList, drop=F]
     Y_test  = y[ cv.idx, ]
     print(paste('using', paste(head(cv.idx, 10), collapse=','),',etc, as validation' ))
-    df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed)
+#    df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed)
+    
+    if( (length(runSpec$ntime) ==1 && runSpec$ntime > 0) || length(runSpec$ntime) > 1 ) {
+      df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed)
+      df.out$df_pred <- alignProb(df.out$df_pred,  timeNeeded=runSpec$ntime)
+    }else{
+      df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed,outputPrediction='') # do not save predicted survival prob
+    }
     
     df_vimp_tmp <- df.out$df_vimp
     df_pred_tmp <- df.out$df_pred
@@ -175,7 +219,7 @@ if(!dir.exists(runSpec$outP)){
 #write.csv(df_vimp, out_vimp, row.names = F)
 #write.csv(df_pred, out_preval, row.names = F)
 
-outF <- paste0(runSpec$outP, "/rfsrc_rdata_", runSpec$surv_col, "_seed", seed, "_cv", cv_id_curr, ".rdata")
+
 save(df_pred, df_vimp, file=outF)
 
 end.time <- Sys.time()

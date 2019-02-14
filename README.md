@@ -1,7 +1,7 @@
 # EVE <img src="/images/EVE.png" width="20%"> 
 
 
-[![GitHub repo version](https://img.shields.io/badge/release-v0.2-blue.svg)](https://github.roche.com/ED-EB/EVE)
+[![GitHub repo version](https://img.shields.io/badge/release-v0.3-blue.svg)](https://github.roche.com/ED-EB/EVE)
 
 
 # Getting started
@@ -72,3 +72,11 @@ When job is done, you will see `results` folder containing all outputs files.
   - knit to pdf and enjoy it
 
 [Check out what the report looks like.](https://github.roche.com/ED-EB/EVE/blob/master/examples/reports/test_eval_multiclass_xgboost.pdf)
+
+
+### Contribute to EVE
+
+We highly recommend users add new models (e.g. add SVM, Neural Network, etc..), 
+please make sure the model outputs prediction and feature importance (and grid search parameters if any) 
+that follow [this data format](https://github.roche.com/ED-EB/EVE/tree/master/examples/model_output_format). 
+With consistent output format, user can use the same reporting template(s) to harvest and compare the result across different models.

@@ -20,6 +20,7 @@ runSpec <- list(
   RFE_step = 10, 
   
   engine = "rfeSRCC.r", ## ML engine
+  ntime = 10, ## (for Brier score calculation; 0 means don't calculate Brier)
   RFE_criteria = 'permute',  
   split_CVs = T,
   queue_priority = "short" ## short, medium, long
@@ -34,14 +35,14 @@ runSpec <- list(
 # User also has to ensure there is no NA in the data.
 
 ## Example of how to modify input data
-# library(dplyr)
-# df <- readr::read_csv(paste0(runSpec$project_home, "/", runSpec$training_data))
-# df.mod <- df %>% 
-#   mutate(os_time = os_time + 1) ## create a dummy feature
-# modified_filename <- "data/df_dummy_modified.csv"
+library(dplyr)
+df <- readr::read_csv(paste0(runSpec$project_home, "/", runSpec$training_data))
+df.mod <- df %>%
+ filter(os_time >0 ) ## remove samples with survival time = 0
 
-# runSpec$training_data <- modified_filename
-# readr::write_csv(df.mod, paste0(runSpec$project_home, "/", runSpec$training_data))
+modified_filename <- "data/df_dummy_modified.csv"
+runSpec$training_data <- modified_filename
+readr::write_csv(df.mod, paste0(runSpec$project_home, "/", runSpec$training_data))
 
 #######################
 ## End of User Input ##
