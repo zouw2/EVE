@@ -1,3 +1,7 @@
+if( ! (R.version$major >= 3 && R.version$minor >= 5.1 )) {
+  stop(paste('reporting needs R version >= 3.5.1'))
+}
+
 #' Read a single object from .rdata 
 #' R based ML engines save outputs as .rdata, therefore,
 #' we need to be able to parse those output
