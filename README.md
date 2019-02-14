@@ -78,5 +78,5 @@ When job is done, you will see `results` folder containing all outputs files.
 
 We highly recommend users add new models (e.g. add SVM, Neural Network, etc..), 
 please make sure the model outputs prediction and feature importance (and grid search parameters if any) 
-that follow [this data format](https://github.roche.com/ED-EB/EVE/tree/dev-models/examples/model_output_format). 
+that follow [this data format](https://github.roche.com/ED-EB/EVE/tree/master/examples/model_output_format). 
 With consistent output format, user can use the same reporting template(s) to harvest and compare the result across different models.
