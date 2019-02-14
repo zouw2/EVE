@@ -2,8 +2,13 @@
 #para = c('1001', "~/ml-pipeline/docs/Tutorial/log/survival_rfsrc_outCVs_test4/metainfo.Rdata", '0')
 source('~/EVE/eve/models/ml_functions.R')
 
-print("EVE commit:")
-git2r::revparse_single(git2r::repository('~/EVE'),"HEAD") # this line works for R 3.4.3/3.5.1 under rescomp3
+
+#if( ! (R.version$major >= 3 && R.version$minor >= 5.1 )) {
+#  stop(paste('reporting needs R version 3.5.1'))
+#}
+
+#print("EVE commit:")
+#git2r::revparse_single(git2r::repository('~/EVE'),"HEAD") # this line works for R 3.4.3/3.5.1 under rescomp3
 
 #################
 ## User Inputs ##
