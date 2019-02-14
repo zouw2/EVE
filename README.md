@@ -1,7 +1,7 @@
 # EVE <img src="/images/EVE.png" width="20%"> 
 
 
-[![GitHub repo version](https://img.shields.io/badge/release-v0.2-blue.svg)](https://github.roche.com/ED-EB/EVE)
+[![GitHub repo version](https://img.shields.io/badge/release-v0.3-blue.svg)](https://github.roche.com/ED-EB/EVE)
 
 
 # Getting started
