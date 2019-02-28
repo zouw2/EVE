@@ -124,14 +124,14 @@ elif len(RFE_step) == 1:
     RFE_step = RFE_step[0]
     
     if RFE_step == 0: ## use all features without RFE
-        sizes = [x.shape[1]]
+        sizes = int([x.shape[1]])
     elif 0.0 < RFE_step < 1:
         ft = x.shape[1]
         sizes = []
         step_size = 1
         while step_size >= 1:
             step_size = round(RFE_step*ft)
-            sizes.append(ft)
+            sizes.append(int(ft))
             ft -= step_size
     else:
         RFE_step = int(RFE_step)
@@ -160,7 +160,7 @@ else:
     
 ## xgboost hyper-params
 xgb_params = {
-    "n_estimators": 1000,
+    "n_estimators": 3000,
     "learning_rate": 0.05, # 0.3, [0,1], usually 0.01 - 0.2
     "gamma": 1, # 0, [0,∞], minimum loss reduction required to make a further partition on a leaf node of the tree. The larger, the more conservative the algorithm will be.
     "max_depth": 4, # 6, 0 means no limit. [0,∞]
