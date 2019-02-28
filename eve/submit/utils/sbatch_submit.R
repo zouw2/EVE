@@ -19,7 +19,7 @@ generate_cmd <- function(runSpec, curr_seed, cv, file_run, file_cmd){
                       " ", cv)
     cat(scripts, file=paste0(log_path, "/", file_cmd))
     command <- paste0('bsub -q ', runSpec["queue_priority"], 
-                      ' -n 12 -R "span[hosts=1] rusage[mem=12]" -oo ', log_path, "/", file_run, 
+                      ' ', runSpec[['server_management']], ' -oo ', log_path, "/", file_run, 
                       ' < ', log_path, "/", file_cmd)
     return(command)
     

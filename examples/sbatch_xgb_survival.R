@@ -22,7 +22,8 @@ runSpec <- list(
   engine = "XGBoost_surv.py", 
   RFE_criteria = 'gain',  ## gain or frequency
   split_CVs = T,
-  queue_priority = "short" ## short, medium, long
+  queue_priority = "short" , ## short, medium, long
+  server_management =  '-n 12 -R "span[hosts=1] rusage[mem=12]"' # this asks for a cluster with 12 o more CPU, each with 12G memory or more
 )
 ########################################
 ### Input Data Processing (optional) ###
