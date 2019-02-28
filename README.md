@@ -23,8 +23,8 @@ Install some Python libraries
 
 ```console
 cd ~/EVE
-module load apps/python
-pip install --user -r requirements.txt
+module load apps/python3
+pip3 install --user -r requirements.txt
 ```
 
 Install some R libraries

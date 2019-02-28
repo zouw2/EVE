@@ -13,13 +13,13 @@ generate_cmd <- function(runSpec, curr_seed, cv, file_run, file_cmd){
                         #BSUB -J ",  runSpec[['project_name']],"
                         #BSUB -oo ", runSpec[['project_name']],"_%J        
                         #BSUB -eo ", runSpec[['project_name']],"_%J",
-                      "\npython ", runSpec["engineFile"], 
+                      "\npython3 ", runSpec["engineFile"], 
                       " ", curr_seed,
                       " ", paste0(log_path, '/metainfo.txt'),
                       " ", cv)
     cat(scripts, file=paste0(log_path, "/", file_cmd))
     command <- paste0('bsub -q ', runSpec["queue_priority"], 
-                      ' -n 6 -R "span[hosts=1] rusage[mem=12]" -oo ', log_path, "/", file_run, 
+                      ' -n 12 -R "span[hosts=1] rusage[mem=12]" -oo ', log_path, "/", file_run, 
                       ' < ', log_path, "/", file_cmd)
     return(command)
     
@@ -111,7 +111,7 @@ sbatch_submit <- function(runSpec){
         
         ## create batch file command
         command <- generate_cmd(runSpec, curr_seed, cv, file_run, file_cmd)
-        system(paste0("module load apps/python
+        system(paste0("module load apps/python3
                     ", command))
       }
     }
@@ -127,7 +127,7 @@ sbatch_submit <- function(runSpec){
       
       ## create batch file command
       command <- generate_cmd(runSpec, curr_seed, cv, file_run, file_cmd)
-      system(paste0("module load apps/python
+      system(paste0("module load apps/python3
                     ", command))
     }
     print(paste0(runSpec$num_seeds, " jobs submitted!"))
