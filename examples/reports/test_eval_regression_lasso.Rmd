@@ -60,6 +60,8 @@ plt$overall +
         axis.ticks.x=element_blank())
 ```
 
+'Pred' compares the actual CV prediction with observed value. 'Rand' compares permuted CV prediction with observed to mimic random prediction.
+
 ### correlation
 
 ```{r, echo=FALSE}
