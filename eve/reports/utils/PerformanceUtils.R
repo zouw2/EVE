@@ -554,14 +554,15 @@ plotVIMP2 <- function(df, ft_num=NULL, ft_name=c(), top_n=20, bin=30, ignore_neg
   }
   
   df.top.f <- df.vimp.scores %>% 
-    arrange(desc(vimp.avg.abs)) %>% 
-    arrange(vimp.avg.abs) ## this is to plot the vimp from top-down
+    arrange(desc(vimp.avg.abs)) ## descending order
   
-    if(length(ft_name) > 0) {
-        df.top.f <- subset(df.top.f, feature %in% ft_name )
-    }else{
-      df.top.f <- df.top.f  %>% slice(1:top_n)
-    }
+  if(length(ft_name) > 0) {
+    df.top.f <- subset(df.top.f, feature %in% ft_name )
+  }else{
+    df.top.f <- df.top.f %>% 
+      slice(1:top_n) %>% 
+      arrange(vimp.avg.abs) ## acsending order, this is to plot the vimp from top-down
+  }
 
   plt1 <- ggplot(df.vimp.scores, aes(x=vimp.avg)) + 
     geom_histogram(color="black", fill="white", bins=50) +
