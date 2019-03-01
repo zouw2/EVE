@@ -21,7 +21,7 @@ def grid_search(xgbc, X_train, Y_train, X_test, Y_test, evalm, weights=None):
     parameters = {'max_depth':[1,2,3,4,5], 
                   #'learning_rate':[0.1, 0.05],
                   #'min_child_weight':[1,3,5],
-                  #"n_estimators":[100, 300],
+                  #"n_estimators":[100, 500, 1000, 1500, 2000],
                   "max_delta_step":[0,1,3,5],
                   "reg_alpha":[0,1,3,5]
                  }
@@ -37,18 +37,18 @@ def grid_search(xgbc, X_train, Y_train, X_test, Y_test, evalm, weights=None):
     if evalm == "cox-nloglik":
         parameters["n_estimators"] = [100, 300, 500]
         grid = RandomizedSearchCV(xgbc, parameters, cv=cv_sets, 
-                        fit_params = fit_params, n_jobs=-1,
-                        error_score = 0, n_iter = 15)
+                        fit_params = fit_params, 
+                        n_jobs=-1, error_score = 0, n_iter = 20)
     elif evalm == "rmse":
         grid = RandomizedSearchCV(xgbc, parameters, cv=cv_sets, 
-                        fit_params = fit_params, n_jobs=-1,
-                        scoring = "neg_mean_squared_error",
-                        error_score = 0, n_iter = 15)
+                        fit_params = fit_params, 
+                        n_jobs=-1, scoring = "neg_mean_squared_error",
+                        error_score = 0, n_iter = 20)
     else:
         grid = RandomizedSearchCV(xgbc, parameters, cv=cv_sets, 
                             fit_params = fit_params,
                             scoring = 'f1_macro', n_jobs=-1,
-                            error_score = 0, n_iter = 15)
+                            error_score = 0, n_iter = 20)
 
     with joblib.parallel_backend('threading'):
         grid.fit(X_train, Y_train)
@@ -133,7 +133,7 @@ def confM(xgbc, X_test, Y_test, evalm, xgbc_cali=None, Y_test_surv=None):
     #df_dict = {}
     #df_dict[evalm] = xgbc.evals_result_['validation_0'][evalm][-1]
     
-    if evalm in ["auc", "merror"]:
+    if evalm in ["auc", "merror", "logloss", "mlogloss"]:
       Y_pred_cali = xgbc_cali.predict(X_test)
       Y_pred_prob = xgbc.predict_proba(X_test) ## might not work for regression
       Y_pred_prob_cali = xgbc_cali.predict_proba(X_test) ## calibrated outcomes
@@ -283,7 +283,7 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
             evaluation = xgbc.evals_result_['validation_0'][evalm][-1]
             print(evalm+":", evaluation, "at size =", k)
         
-        if evalm in ["auc", "merror"]:
+        if evalm in ["auc", "merror", "logloss", "mlogloss"]:
             xgbc_cali = CalibratedClassifierCV(xgbc, method='isotonic', cv=5)
             xgbc_cali.fit(X_train.loc[:, top_fts], Y_train, sample_weight = weights)
         else:

@@ -124,7 +124,7 @@ elif len(RFE_step) == 1:
     RFE_step = RFE_step[0]
     
     if RFE_step == 0: ## use all features without RFE
-        sizes = int([x.shape[1]])
+        sizes = [int(x.shape[1])]
     elif 0.0 < RFE_step < 1:
         ft = x.shape[1]
         sizes = []
@@ -149,11 +149,11 @@ if label in ["OS", "PFS"]:
 
 elif df[label].nunique() > 2: ## if more than 2 classes  
     obj = "multi:softmax"
-    evalm = "merror"
+    evalm = "mlogloss" ## merror
 
 elif df[label].nunique() == 2: ## if binary classes
     obj = "binary:logistic" 
-    evalm = "auc"
+    evalm = "logloss" ## "auc""
     
 else:
     print("Label contains only 1 class.")
