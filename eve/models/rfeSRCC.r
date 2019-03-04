@@ -225,3 +225,5 @@ save(df_pred, df_vimp, file=outF)
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 print(paste('time taken:', time.taken)) # give the running length helps user to pick a queue type
+
+sessionInfo()
