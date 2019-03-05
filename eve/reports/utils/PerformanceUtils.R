@@ -560,9 +560,10 @@ plotVIMP2 <- function(df, ft_num=NULL, ft_name=c(), top_n=20, bin=30, ignore_neg
     df.top.f <- subset(df.top.f, feature %in% ft_name )
   }else{
     df.top.f <- df.top.f %>% 
-      slice(1:top_n) %>% 
-      arrange(vimp.avg.abs) ## acsending order, this is to plot the vimp from top-down
+      slice(1:top_n) 
   }
+
+  df.top.f <- df.top.f  %>%  arrange(vimp.avg.abs) ## acsending order, this is to plot the vimp from top-down
 
   plt1 <- ggplot(df.vimp.scores, aes(x=vimp.avg)) + 
     geom_histogram(color="black", fill="white", bins=50) +
@@ -792,12 +793,13 @@ correlation <- function(df, seed_num=NULL){
   }
   
   df.in <- df %>% filter(seed == seed_num)
+  df.in <- subset(df.in, size == max(size))
   lb_name <- as.name(runSpec$label_name)
   plt <- ggplot(data = df.in, 
                 aes_string(x="pred", y = lb_name)) + 
     geom_point(alpha=0.3) +
     theme_bw() +
-    ggtitle(paste0("Correlation at seed = ", seed_num))
+    ggtitle(paste0("Correlation at seed = ", seed_num,' using ', max(df.in$size),' feature set input'))
   
   lb_name <- as.name(runSpec$label_name)
   
@@ -806,8 +808,8 @@ correlation <- function(df, seed_num=NULL){
     summarise(corr = cor(!!lb_name, pred)) %>% 
     summarise(cor.avg = mean(corr),
               cor.sdt = sd(corr))
-  cat("Averaged pearson correlation across seeds")
-  print(cor.summary)
+  
+  print(knitr::kable(cor.summary, caption="Averaged pearson correlation across seeds"))
   print(plt)
 }
 
