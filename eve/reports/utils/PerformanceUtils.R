@@ -2,7 +2,25 @@ if( ! (R.version$major >= 3 && R.version$minor >= 5.1 )) {
   stop(paste('reporting needs R version >= 3.5.1'))
 }
 
+countUniqueFeatures <- function(vimpIn, size ) {
+  stopifnot(all( c('cv','seed') %in% colnames(vimpIn)))
+  
+  if ('size' %in% colnames(vimpIn)){
+    if( missing(size) || is.null(size)|| is.na(size)) size <- max(vimpIn$size)
+  
+    vimpIn <-  vimpIn[vimpIn[, 'size'] == size, ,drop=F]
+  }else{
+    size <- 'current'
+  }
 
+  print(paste('there are', length(unique(vimpIn$feature)), 'unique features used from the', size,'feature set'))
+
+  with(vimpIn, tapply(feature, list(seed,cv), function(x) {
+ 
+    stopifnot( !any(duplicated(x)) )
+    length(x)
+    }))
+}
 
 extractParameterFromFileName <- function(fileName, pos, sep1='_'){
   fileName <- gsub('\\.[^.]*$', '', fileName, perl=T) #remove one file extension
