@@ -1,3 +1,30 @@
+
+decideRFEseq <- function(RFE_step  , ft){
+  stopifnot( length(RFE_step) == 1 && RFE_step >= 0 )
+  
+  if (RFE_step == 0) return(ft)
+
+  if(is.integer(RFE_step)){
+    return( seq(ft, RFE_step,  runSpec$RFE_step*-1) ) ## use fixed step_size
+  }else{
+    stopifnot(RFE_step > 1)
+    step_size <-  min_step <- floor(RFE_step) # get the integer part as the min step size
+    RFE_step <- RFE_step - min_step # get the fraction part as the fract of features to discard
+    sizes <- c()
+        
+    while (step_size >= min_step){
+      step_size <- round(RFE_step*ft)
+      sizes <- c(sizes, ft) 
+      ft <- ft - step_size
+    }
+ 
+    if(tail(sizes,1) > min_step) {
+      sizes <- c(sizes, seq(from= tail(sizes,1) - min_step, to = min_step, by=min_step*-1))
+    }
+    return(sizes)
+  }
+}
+
 findConstantVar <- function(ds){
   stopifnot(is.matrix(ds) || is.data.frame(ds))
   

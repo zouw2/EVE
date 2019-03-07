@@ -2,7 +2,25 @@ if( ! (R.version$major >= 3 && R.version$minor >= 5.1 )) {
   stop(paste('reporting needs R version >= 3.5.1'))
 }
 
+countUniqueFeatures <- function(vimpIn, size ) {
+  stopifnot(all( c('cv','seed') %in% colnames(vimpIn)))
+  
+  if ('size' %in% colnames(vimpIn)){
+    if( missing(size) || is.null(size)|| is.na(size)) size <- max(vimpIn$size)
+  
+    vimpIn <-  vimpIn[vimpIn[, 'size'] == size, ,drop=F]
+  }else{
+    size <- 'current'
+  }
 
+  print(paste('there are', length(unique(vimpIn$feature)), 'unique features used from the', size,'feature set'))
+
+  with(vimpIn, tapply(feature, list(seed,cv), function(x) {
+ 
+    stopifnot( !any(duplicated(x)) )
+    length(x)
+    }))
+}
 
 extractParameterFromFileName <- function(fileName, pos, sep1='_'){
   fileName <- gsub('\\.[^.]*$', '', fileName, perl=T) #remove one file extension
@@ -560,9 +578,10 @@ plotVIMP2 <- function(df, ft_num=NULL, ft_name=c(), top_n=20, bin=30, ignore_neg
     df.top.f <- subset(df.top.f, feature %in% ft_name )
   }else{
     df.top.f <- df.top.f %>% 
-      slice(1:top_n) %>% 
-      arrange(vimp.avg.abs) ## acsending order, this is to plot the vimp from top-down
+      slice(1:top_n) 
   }
+
+  df.top.f <- df.top.f  %>%  arrange(vimp.avg.abs) ## acsending order, this is to plot the vimp from top-down
 
   plt1 <- ggplot(df.vimp.scores, aes(x=vimp.avg)) + 
     geom_histogram(color="black", fill="white", bins=50) +
@@ -792,12 +811,13 @@ correlation <- function(df, seed_num=NULL){
   }
   
   df.in <- df %>% filter(seed == seed_num)
+  df.in <- subset(df.in, size == max(size))
   lb_name <- as.name(runSpec$label_name)
   plt <- ggplot(data = df.in, 
                 aes_string(x="pred", y = lb_name)) + 
     geom_point(alpha=0.3) +
     theme_bw() +
-    ggtitle(paste0("Correlation at seed = ", seed_num))
+    ggtitle(paste0("Correlation at seed = ", seed_num,' using ', max(df.in$size),' feature set input'))
   
   lb_name <- as.name(runSpec$label_name)
   
@@ -806,8 +826,8 @@ correlation <- function(df, seed_num=NULL){
     summarise(corr = cor(!!lb_name, pred)) %>% 
     summarise(cor.avg = mean(corr),
               cor.sdt = sd(corr))
-  cat("Averaged pearson correlation across seeds")
-  print(cor.summary)
+  
+  print(knitr::kable(cor.summary, caption="Averaged pearson correlation across seeds"))
   print(plt)
 }
 

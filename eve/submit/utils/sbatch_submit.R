@@ -63,8 +63,13 @@ sbatch_submit <- function(runSpec){
   
   ## get current EVE's commit hash
   chash <- git2r::revparse_single(git2r::repository('~/EVE'),"HEAD")
-  runSpec["CommitHash"] <- paste(chash, collapse = ",")
-  
+ 
+  if(installed.packages()['git2r', 'Version']  == "0.21.0") {
+    runSpec["CommitHash"] <- paste(chash@sha,chash@summary, sep=':') # to  this works with 0.21.0
+  }else{
+    runSpec["CommitHash"] <- paste(chash, collapse = ",") #R 3.5.1 has git2r version"0.24.0"
+  }
+
   ## if log directly not exist, create one
   if(!dir.exists(log_path)){
     dir.create(log_path, recursive=TRUE)
@@ -81,7 +86,7 @@ sbatch_submit <- function(runSpec){
   ## check if LOOCV
   if(runSpec$num_CV == -1){
     runSpec$split_CVs <- TRUE
-    runSpec$num_seeds <- 1
+#    runSpec$num_seeds <- 1 #maybe we need multiple runs with LOOCV as well
     
     ## num_CV becomes the total number of samples
     df <- read.csv(paste(runSpec$project_home, runSpec$training_data, sep='/'), 
