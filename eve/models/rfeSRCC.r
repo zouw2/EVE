@@ -108,30 +108,13 @@ if(length(RFE_step) > 1){
   sizes <- RFE_step
   
   ## if user provides a single value
-} else if(length(RFE_step) == 1){ 
-  stopifnot(runSpec$RFE_step <= nFeature)
-  
-  ## use all features
-  if(RFE_step == 0){ 
-    sizes <- nFeature 
-  ## use fraction of features
-  } else if (0.0 < RFE_step & RFE_step < 1){
-    
-    ft <- nFeature
-    sizes <- c()
-    step_size <- 1
-    
-    while (step_size >= 1){
-      step_size <- round(RFE_step*ft)
-      sizes <- c(sizes, ft) 
-      ft <- ft - step_size
-    }
-  }
-  ## use fixed step_size
-  else {
-    sizes <- seq(nFeature, 1,  runSpec$RFE_step*-1)
-  }
-}
+} else {
+  sizes <- decideRFEseq(RFE_step = runSpec$RFE_step, ft =nFeature)
+ } 
+   
+
+stopifnot(max(sizes) <= nFeature)
+
 print("RFE steps:")
 print(sizes)
 
