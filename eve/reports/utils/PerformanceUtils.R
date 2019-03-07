@@ -815,7 +815,7 @@ correlation <- function(df, seed_num=NULL){
 #'  @param df dataframe of average vimp. usually from the output of plotVIMP/plotVIMP2
 #'  @param df.orig dataframe of original input data
 #' 
-plotHeatmap <- function(df, df.orig, top_n=20){
+plotHeatmap <- function(df, df.orig, top_n=20, classification=FALSE){
   
   if(grepl("lasso", tolower(runSpec$engine))){
     vimp_name <- as.name("vimp.avg")
@@ -843,7 +843,7 @@ plotHeatmap <- function(df, df.orig, top_n=20){
     stop("unrecognized label (Y)")
   }
   
-  df.orig <- df.orig %>% arrange_(lb)
+  df.orig <- df.orig %>% arrange(!!as.name(lb))
   
   df.plt <- df.orig[, fts$feature]
   df.lb <- df.orig[, lb]
@@ -852,7 +852,12 @@ plotHeatmap <- function(df, df.orig, top_n=20){
   
   annot.row <- data.frame("vimp" = fts[[vimp_name]])
   rownames(annot.row) <- rownames(df.in)
-  annot.col <- data.frame(df.orig[, lb]) 
+  if(classification){
+    annot.col <- data.frame(df.orig[, lb]) %>%  mutate_all(as.factor)
+  } else {
+    annot.col <- data.frame(df.orig[, lb])
+  }
+   
   #annot.col <- as.factor(annot.col)
   rownames(annot.col) <- colnames(df.in)
   title <- paste0("Heatmap of top ", top_n, " important features")
