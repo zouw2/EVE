@@ -1,6 +1,6 @@
 ---
 title: "Evaluate testing data (multi-class) - xgboost"
-author: "John Doe"
+author: "EVE W."
 date: '`r Sys.Date()`'
 output:
   pdf_document:
@@ -8,12 +8,7 @@ output:
     toc_depth: '3'
 ---
 
-Labels: 
-  0: Basal
-  1: LumA
-  2: LumB
-  3: Her2
-
+ 
 
 ```{r}
 ## user input
@@ -50,10 +45,17 @@ num.seed <- length(unique(df.preval$seed))
 cat(tot.sample, "of samples were used \n")
 cat(tot.feature, "of full features\n")
 cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
+
+# if you think there are some unit run output is missing, use the following to figure out which ones are missing; then you can check out their log output to see whether there are specific errors
+
+# you may need adjust posSeed or posSplit value
+# Given a outcome name like 'glmnet_rdata_phenotype_seed1001_cv1.rdata', and the function splitting the output name by '_', the index of seed value is 4, and that of cv split is 5. So there are posSeed=4, posSplit = 5 below.
+#checkOutput(path = with(runSpec, paste(project_home,'results', project_name, sep='/')), pattern = paste( '\\.rdata', sep=''), posSeed=4, posSplit = 5 )
+
 cat("Labels:\n")
 table(df.orig[[runSpec$label_name]])
 ```
-
+run with `r runSpec$engine`.
 
 ## 1. Scores
 
