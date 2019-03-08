@@ -60,7 +60,7 @@ plt$overall +
 ```
 
 ```{r, echo=FALSE, warning=FALSE}
-knitr::kable(eval.minmax(plt$df.scores))
+knitr::kable(eval.minmax(plt$df.scores), digits = 3)
 ```
 
 The following plot is to quickly see how well the prediction can separate long and short survivor. 
