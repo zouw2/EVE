@@ -81,7 +81,7 @@ plt$overall +
 ```
 
 ```{r, warning=FALSE, echo=FALSE}
-knitr::kable(eval.minmax(plt$df.scores))
+knitr::kable(eval.minmax(plt$df.scores), digits = 3)
 ```
 average scores across classes
 

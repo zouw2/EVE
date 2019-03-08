@@ -69,7 +69,7 @@ Note for the **HR plot**: A HR value (per seed) is calculated by comparing the s
 
 
 ```{r, echo=FALSE, warning=FALSE}
-knitr::kable(eval.minmax(plt$df.scores))
+knitr::kable(eval.minmax(plt$df.scores), digits = 3)
 ```
 
 

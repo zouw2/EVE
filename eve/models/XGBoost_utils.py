@@ -266,7 +266,10 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
             print("feature size:", k)
             grid = grid_search(xgbc, X_train.loc[:, top_fts], Y_train, 
                                     X_test.loc[:, top_fts], Y_test, evalm, weights)
-            df_grid_ = pd.DataFrame.from_records([grid.best_params_])
+            best_params = grid.best_params_
+            ## extract early_stopping's n_estimators
+            best_params["n_estimators"] = grid.best_estimator_.best_iteration
+            df_grid_ = pd.DataFrame.from_records([best_params])
             df_grid_["score"] = grid.best_score_
             df_grid_["size"] = k
             df_grid = df_grid.append(df_grid_)
@@ -321,6 +324,7 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
             df_prevalid_ = confM(xgbc, X_test.loc[:, top_fts], Y_test, evalm, xgbc_cali)
         #df_error["size"] = X_train.shape[1]
         df_prevalid_["size"] = k
+        df_prevalid_["n_estimators"] = xgbc.best_iteration
         
         ## append dataframes
         df_vimp = df_vimp.append(df_vimp_)

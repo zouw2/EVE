@@ -161,8 +161,8 @@ else:
 ## xgboost hyper-params
 xgb_params = {
     "n_estimators": 3000,
-    "learning_rate": 0.05, # 0.3, [0,1], usually 0.01 - 0.2
-    "gamma": 1, # 0, [0,∞], minimum loss reduction required to make a further partition on a leaf node of the tree. The larger, the more conservative the algorithm will be.
+    "learning_rate": 0.01, # 0.3, [0,1], usually 0.01 - 0.2
+    "gamma": 0, # 0, [0,∞], minimum loss reduction required to make a further partition on a leaf node of the tree. The larger, the more conservative the algorithm will be.
     "max_depth": 4, # 6, 0 means no limit. [0,∞]
     "min_child_weight": 1, # 1, [0,∞], If the tree partition step results in a leaf node with the sum of instance weight less than min_child_weight, then the building process will give up further partitioning. In linear regression mode, this simply corresponds to minimum number of instances needed to be in each node. The larger, the more conservative the algorithm will be.
     "max_delta_step": 0, # 0, [0,∞], Usually this parameter is not needed, but it might help in logistic regression when class is extremely imbalanced. Set it to value of 1-10 might help control the update
