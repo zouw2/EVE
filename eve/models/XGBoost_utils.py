@@ -329,5 +329,7 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
         ## append dataframes
         df_vimp = df_vimp.append(df_vimp_)
         df_prevalid = df_prevalid.append(df_prevalid_)
+    
+    df_vimp = df_vimp[~(df_vimp.weight.isna() | df_vimp.gain.isna())]
             
     return(df_vimp, df_grid, df_prevalid)
