@@ -114,7 +114,8 @@ getResults <- function(project_home, project_name, type, objName = NULL){
   } else {
     df <- data_frame(seed = seed.num) %>% 
       mutate(df = map(files,
-                      ~ read_csv(file.path(Path2Results, .)))) %>% 
+#                      ~ read_csv(file.path(Path2Results, .)))) %>%
+                       ~ data.table::fread(file = file.path(Path2Results, .), stringsAsFactors = F, header=T ))) %>% 
       unnest() 
   }
   
