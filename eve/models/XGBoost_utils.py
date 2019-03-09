@@ -266,11 +266,24 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
             print("feature size:", k)
             grid = grid_search(xgbc, X_train.loc[:, top_fts], Y_train, 
                                     X_test.loc[:, top_fts], Y_test, evalm, weights)
-            best_params = grid.best_params_
-            ## extract early_stopping's n_estimators
-            best_params["n_estimators"] = grid.best_estimator_.best_iteration
-            df_grid_ = pd.DataFrame.from_records([best_params])
-            df_grid_["score"] = grid.best_score_
+            
+            ## For admin use only; whether to output just the best grid score or all scores.
+            best_grid_score = True  
+            ## if True, only output the best grid values. Else, output all search results.
+            ## if All search results, the n_estimators value won't be saved unless we also tune this parameter.
+            ## GridsearchCV or RandomizedSearchCV only stores the best n_estimators value.
+            if best_grid_score:
+                best_params = grid.best_params_
+                ## extract early_stopping's n_estimators
+                best_params["n_estimators"] = grid.best_estimator_.best_iteration
+                df_grid_ = pd.DataFrame.from_records([best_params])
+                df_grid_["score"] = grid.best_score_
+            else:
+                ## get all the grid scores (but it does not have n_estimator info for each combination, only the best)
+                grid_scores_ = pd.DataFrame(grid.grid_scores_)
+                df_grid_ = pd.DataFrame.from_records(grid_scores_.parameters)
+                df_grid_["score"] = grid_scores_.mean_validation_score
+            
             df_grid_["size"] = k
             df_grid = df_grid.append(df_grid_)
             
@@ -329,5 +342,7 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
         ## append dataframes
         df_vimp = df_vimp.append(df_vimp_)
         df_prevalid = df_prevalid.append(df_prevalid_)
+    
+    df_vimp = df_vimp[~(df_vimp.weight.isna() | df_vimp.gain.isna())]
             
     return(df_vimp, df_grid, df_prevalid)
