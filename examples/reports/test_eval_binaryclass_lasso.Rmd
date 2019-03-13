@@ -1,6 +1,6 @@
 ---
 title: "Evaluate testing data (binary-class) - Lasso"
-author: "John Doe"
+author: "EVE W."
 date: '`r Sys.Date()`'
 output:
   pdf_document:
@@ -48,6 +48,13 @@ num.seed <- length(unique(df.preval$seed))
 cat(tot.sample, "of samples were used \n")
 cat(tot.feature, "of full features\n")
 cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
+
+# if you think there are some unit run output is missing, use the following to figure out which ones are missing; then you can check out their log output to see whether there are specific errors
+
+# you may need adjust posSeed or posSplit value
+# Given a outcome name like 'glmnet_rdata_phenotype_seed1001_cv1.rdata', and the function splitting the output name by '_', the index of seed value is 4, and that of cv split is 5. So there are posSeed=4, posSplit = 5 below.
+#checkOutput(path = with(runSpec, paste(project_home,'results', project_name, sep='/')), pattern = paste( '\\.rdata', sep=''), posSeed=4, posSplit = 5 )
+
 cat("Labels:\n")
 table(df.orig[[runSpec$label_name]])
 
@@ -61,6 +68,7 @@ if( !is.na(runSpec$weight_col) && nchar(runSpec$weight_col) && runSpec$weight_co
 }
 ```
 
+run with `r runSpec$engine`.
 
 ## 1. Scores
 
@@ -107,12 +115,23 @@ with(as.data.frame(df.vimp), hist(table(paste(cv, seed)),
 par(mar=c(5,20,4,2))
 barplot(tail(sort(table(df.vimp$feature)), 20), 
         horiz =T, las=2, main='Number of times a feature is used')
+
+c1 <-  countUniqueFeatures(df.vimp)
+
+print(paste('summary of numer of features used in', nrow(c1),'seeds and', ncol(c1),'CVs'))
+summary(as.vector(c1))
+
 ```
 (currently only Lasso has this graph)
 
 
 ```{r, echo=FALSE}
-df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 20)
+# top features based on average coefficients
+#df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 20)
+
+#or alternatively, top features based on frequency of being included in the model
+df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, ft_name = names(top_f) )
+
 ## plot
 df.vimp.plt$plt.dist.f +
   ggtitle("Distribution of Feature Coefficient")
