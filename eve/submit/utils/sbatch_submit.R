@@ -74,10 +74,17 @@ sbatch_submit <- function(runSpec){
   if(!dir.exists(log_path)){
     dir.create(log_path, recursive=TRUE)
   }
-  ## if log/cluster_out not exist, create one
-  if(!dir.exists(log_path_cluster)){
-    dir.create(log_path_cluster, recursive=TRUE)
+  ## if log/cluster_out not exist, create one. 
+
+#  if(!dir.exists(log_path_cluster)){
+#    dir.create(log_path_cluster, recursive=TRUE)
+#  }
+# if log/cluster_out already exists, remove the old new and create a new one
+  if(dir.exists(log_path_cluster)){
+    unlink(log_path_cluster, recursive=TRUE)
   }
+  dir.create(log_path_cluster, recursive=TRUE)
+
   setwd(log_path_cluster)
   
   ####################################
