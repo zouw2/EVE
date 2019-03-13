@@ -21,34 +21,34 @@ def grid_search(xgbc, X_train, Y_train, X_test, Y_test, evalm, weights=None):
     parameters = {'max_depth':[1,2,3,4,5], 
                   #'learning_rate':[0.1, 0.05],
                   #'min_child_weight':[1,3,5],
-                  #"n_estimators":[100, 500, 1000, 1500, 2000],
+                  "n_estimators":[100, 500, 1000, 1500, 2000],
                   "max_delta_step":[0,1,3,5],
                   "reg_alpha":[0,1,3,5]
                  }
 
-    fit_params={"early_stopping_rounds":100, 
-                "sample_weight": weights,
-                "eval_metric" : evalm, 
-                "eval_set" : [(X_test, Y_test)],
-                "verbose": False}
+    # fit_params={"early_stopping_rounds":100, 
+    #             "sample_weight": weights,
+    #             "eval_metric" : evalm, 
+    #             "eval_set" : [(X_test, Y_test)],
+    #             "verbose": False}
     
     cv_sets = KFold(n_splits=3, shuffle=True, random_state=42)
     
     if evalm == "cox-nloglik":
         parameters["n_estimators"] = [100, 300, 500]
         grid = RandomizedSearchCV(xgbc, parameters, cv=cv_sets, 
-                        fit_params = fit_params, 
-                        n_jobs=-1, error_score = 0, n_iter = 20)
+                        #fit_params = fit_params, 
+                        n_jobs=-1, error_score = 0, n_iter = 30)
     elif evalm == "rmse":
         grid = RandomizedSearchCV(xgbc, parameters, cv=cv_sets, 
-                        fit_params = fit_params, 
+                        #fit_params = fit_params, 
                         n_jobs=-1, scoring = "neg_mean_squared_error",
-                        error_score = 0, n_iter = 20)
+                        error_score = 0, n_iter = 30)
     else:
         grid = RandomizedSearchCV(xgbc, parameters, cv=cv_sets, 
-                            fit_params = fit_params,
+                            #fit_params = fit_params,
                             scoring = 'f1_macro', n_jobs=-1,
-                            error_score = 0, n_iter = 20)
+                            error_score = 0, n_iter = 30)
 
     with joblib.parallel_backend('threading'):
         grid.fit(X_train, Y_train)
@@ -268,21 +268,21 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
                                     X_test.loc[:, top_fts], Y_test, evalm, weights)
             
             ## For admin use only; whether to output just the best grid score or all scores.
-            best_grid_score = True  
+            best_grid_score = False  
             ## if True, only output the best grid values. Else, output all search results.
             ## if All search results, the n_estimators value won't be saved unless we also tune this parameter.
             ## GridsearchCV or RandomizedSearchCV only stores the best n_estimators value.
             if best_grid_score:
                 best_params = grid.best_params_
                 ## extract early_stopping's n_estimators
-                best_params["n_estimators"] = grid.best_estimator_.best_iteration
+                #best_params["n_estimators"] = grid.best_estimator_.best_iteration
                 df_grid_ = pd.DataFrame.from_records([best_params])
                 df_grid_["score"] = grid.best_score_
             else:
                 ## get all the grid scores (but it does not have n_estimator info for each combination, only the best)
-                grid_scores_ = pd.DataFrame(grid.grid_scores_)
-                df_grid_ = pd.DataFrame.from_records(grid_scores_.parameters)
-                df_grid_["score"] = grid_scores_.mean_validation_score
+                grid_scores_ = pd.DataFrame(grid.cv_results_)
+                df_grid_ = pd.DataFrame.from_records(grid_scores_.params)
+                df_grid_["score"] = grid_scores_.mean_test_score
             
             df_grid_["size"] = k
             df_grid = df_grid.append(df_grid_)
@@ -290,14 +290,15 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
         xgbc.set_params(**grid.best_params_)
         xgbc.fit(X_train.loc[:, top_fts], Y_train,
                 sample_weight = weights,
-                eval_set = [(X_test.loc[:, top_fts], Y_test)], 
-                eval_metric = evalm, 
-                early_stopping_rounds=100, 
+                ## disabled early_stopping
+                #eval_set = [(X_test.loc[:, top_fts], Y_test)], 
+                #eval_metric = evalm, 
+                #early_stopping_rounds=100, 
                 verbose=False)
         
-        if i % 5 == 0:
-            evaluation = xgbc.evals_result_['validation_0'][evalm][-1]
-            print(evalm+":", evaluation, "at size =", k)
+        #if i % 5 == 0:
+        #    evaluation = xgbc.evals_result_['validation_0'][evalm][-1]
+        #    print(evalm+":", evaluation, "at size =", k)
         
         if evalm in ["auc", "merror", "logloss", "mlogloss"]:
             xgbc_cali = CalibratedClassifierCV(xgbc, method='isotonic', cv=5)
@@ -337,7 +338,7 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
             df_prevalid_ = confM(xgbc, X_test.loc[:, top_fts], Y_test, evalm, xgbc_cali)
         #df_error["size"] = X_train.shape[1]
         df_prevalid_["size"] = k
-        df_prevalid_["n_estimators"] = xgbc.best_iteration
+        #df_prevalid_["n_estimators"] = xgbc.best_iteration
         
         ## append dataframes
         df_vimp = df_vimp.append(df_vimp_)
