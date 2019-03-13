@@ -268,7 +268,7 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
                                     X_test.loc[:, top_fts], Y_test, evalm, weights)
             
             ## For admin use only; whether to output just the best grid score or all scores.
-            best_grid_score = True  
+            best_grid_score = True
             ## if True, only output the best grid values. Else, output all search results.
             ## if All search results, the n_estimators value won't be saved unless we also tune this parameter.
             ## GridsearchCV or RandomizedSearchCV only stores the best n_estimators value.
