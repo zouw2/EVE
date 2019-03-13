@@ -2,6 +2,83 @@ if( ! (R.version$major >= 3 && R.version$minor >= 5.1 )) {
   stop(paste('reporting needs R version >= 3.5.1'))
 }
 
+myScatter <- function(ds, x, y, noise=c(x=0,y=0), col.var='', corMethod='', pch.var='', nCol=4, a=1, lowCol='green', midCol='black', highCol='red', manualCol=c(),  main=''){
+  stopifnot(is.data.frame(ds))
+  
+  stopifnot(all(c(x,y) %in% colnames(ds)))
+  
+  
+  
+  names(noise) <- c(x, y)
+  
+  for( v in names(noise)) {
+    if(noise[v] > 0)  ds[, v] <- ds[, v] + rnorm(n=nrow(ds), mean=0, sd=noise[v])  
+  }
+  
+  ds <- ds[!(is.na(ds[, x]) | is.na(ds[, y])),,drop=F]
+  
+  if( nrow(ds) == 0 ) stop(paste('no observations left with both non-missing', x, 'and', y))
+  
+  p1 <- ggplot(ds, aes_string(x=x, y=y) )
+  
+  if( col.var %in% colnames(ds) ) {
+  
+    if(is.factor(ds[, col.var])){
+      col.f.var <- col.var
+      if(length(manualCol) > 0) {
+        col1 <- manualCol
+      }else{
+        col1 <- gplots::colorpanel(n=nlevels(ds[[col.f.var]]), low=lowCol, mid=midCol, high=highCol)
+      }  
+    }else{
+      col.f.var <- paste(col.var,'F', sep='_')
+      stopifnot(! col.f.var %in% colnames(ds) )
+    brk1 <- quantile( ds[, col.var], probs= seq(0.01, 0.99, length.out=nCol), na.rm=T )
+    brk1 <- unique(c(min(ds[, col.var]), brk1, max(ds[, col.var])))
+    
+    ds[[col.f.var]] <- cut(ds[, col.var], breaks=brk1, include.lowest=T)
+    if(length(manualCol) > 0) {
+      col1 <- manualCol
+    }else{
+      col1 <- gplots::colorpanel(n=length(brk1) - 1, low=lowCol, mid=midCol, high=highCol)
+    }
+    
+    }
+    
+    names(col1) <- levels(ds[[col.f.var]])
+    
+    if( pch.var %in% colnames(ds) ) {
+      p1 <- p1 + geom_point(data=ds, aes_string( col=col.f.var, pch=pch.var), alpha=a) + scale_colour_manual( values=col1, name = paste(col.var,'bins') )
+    }else{
+      p1 <- p1 + geom_point(data=ds, aes_string( col=col.f.var ), pch=16,     alpha=a) + scale_colour_manual( values=col1 )
+    }
+  }else{
+    if( pch.var %in% colnames(ds) ) {
+      p1 <- p1 + geom_point(data=ds, aes_string(pch=pch.var), alpha=a) 
+    }else{
+      p1 <- p1 + geom_point( alpha=a)  
+    }
+    
+     
+  }
+  
+  main <- paste(main, 'n=', nrow(ds))
+  
+  if( corMethod %in% c("pearson", "kendall", "spearman")) {
+    main <- paste(main, corMethod,'=', round.signif( cor(ds[, x], ds[, y], method=corMethod), 2))
+  }
+  
+  p1 + ggtitle(main)
+
+  # if( pch.var %in% colnames(ds) ) {
+  #   ggplot(ds, aes_string(x=x, y=y)) + geom_point(aes_string(col=col.f.var, pch=pch.var)) + scale_colour_manual( values=col1, name = paste(col.var,'bins') )
+  # }else{
+  #   ggplot(ds, aes_string(x=x, y=y)) + geom_point(aes_string(col=col.f.var), pch=16) + scale_colour_manual( values=col1 )
+  # }
+  
+  
+}
+
 countUniqueFeatures <- function(vimpIn, size ) {
   stopifnot(all( c('cv','seed') %in% colnames(vimpIn)))
   
@@ -59,9 +136,9 @@ checkOutput <- function(path, pattern = paste( '\\.rdata', sep=''), posSeed=0, p
   
   cv_count <- tapply(r2[,'cv'], r2[,'seed'], length)
   
-  if(any(cv_count != 5)){
+  if(any(cv_count != maxCV)){
     print(paste('the following seeds have fewer than', maxCV,'CV'))
-    print(cv_count[cv_count!= 5])
+    print(cv_count[cv_count!= maxCV])
   }
   
 }  
