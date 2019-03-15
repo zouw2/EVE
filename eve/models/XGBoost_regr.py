@@ -15,7 +15,7 @@ from functools import reduce
 ## import custom functions
 codepath = "~/EVE/eve/models/"
 sys.path.append(codepath)
-from XGBoost_utils import unit_train
+from XGBoost_utils import unit_train, get_RFE_sizes
 
 ## remove numpy - sklearn bug warning ##
 import warnings
@@ -113,25 +113,7 @@ else:
     x = df.iloc[:,idx] ## select custom selected features
 
 ## handel RFE
-if len(RFE_step) > 1:
-    sizes = [int(step) for step in RFE_step]
-    
-elif len(RFE_step) == 1:
-    RFE_step = RFE_step[0]
-    
-    if RFE_step == 0: ## use all features without RFE
-        sizes = [x.shape[1]]
-    elif 0.0 < RFE_step < 1:
-        ft = x.shape[1]
-        sizes = []
-        step_size = 1
-        while step_size >= 1:
-            step_size = round(RFE_step*ft)
-            sizes.append(int(ft))
-            ft -= step_size
-    else:
-        RFE_step = int(RFE_step)
-        sizes = [i for i in range(x.shape[1],1,-1*RFE_step)]
+sizes = get_RFE_sizes(RFE_step, x.shape[1])
 print("RFE steps:", sizes)
 
 ## objective and evaluation functions

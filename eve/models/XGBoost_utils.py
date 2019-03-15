@@ -9,6 +9,37 @@ from sklearn.calibration import CalibratedClassifierCV
 #from lifelines import CoxPHFitter
 import pandas as pd
 import numpy as np
+from math import modf
+
+
+## handle RFE steps
+def get_RFE_sizes(RFE_step, ft_size):
+    if len(RFE_step) > 1:
+        sizes = [int(step) for step in RFE_step]
+    
+    elif len(RFE_step) == 1:
+        RFE_step = RFE_step[0]
+        RFE_int = int(modf(RFE_step)[1]) ## integer part
+        RFE_float = modf(RFE_step)[0] ## decimal part
+        
+        if (RFE_int == 0) and (RFE_float == 0): ## use all features without RFE
+            sizes = [int(ft_size)]
+        elif 0.0 < RFE_float < 1:
+            if RFE_int == 0: ## prevent user input 0.3
+                RFE_int = 1
+            
+            ft = ft_size
+            sizes = []
+            step_size = RFE_int
+            while step_size >= RFE_int:
+                step_size = round(RFE_float*ft)
+                sizes.append(int(ft))
+                ft -= step_size
+        else:
+            RFE_step = int(RFE_step)
+            sizes = [i for i in range(ft_size,1,-1*RFE_step)]
+    
+    return(sizes)
 
 ## GridSearch for max_depth and min_child_weight 
 def grid_search(xgbc, X_train, Y_train, X_test, Y_test, evalm, weights=None):
@@ -21,7 +52,8 @@ def grid_search(xgbc, X_train, Y_train, X_test, Y_test, evalm, weights=None):
     parameters = {'max_depth':[1,2,3,4,5], 
                   #'learning_rate':[0.1, 0.05],
                   #'min_child_weight':[1,3,5],
-                  "n_estimators":[100, 500, 1000, 1500, 2000],
+                  "n_estimators":[100, 500, 1000, 1500, 2000], 
+                  ## "n_estimators": list(range(100, 2000, 100)), ## this will create 100, 200, 300, ...2000
                   "max_delta_step":[0,1,3,5],
                   "reg_alpha":[0,1,3,5]
                  }
