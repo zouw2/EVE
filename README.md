@@ -19,7 +19,7 @@ _current setup assumes users always clone this repo to your unix HOME_
 
 ### Install Required Packages
 
-Install some Python libraries
+Install  Python libraries
 
 ```console
 cd ~/EVE
@@ -27,10 +27,13 @@ module load apps/python
 pip install --user -r requirements.txt
 ```
 
-Install some R libraries
+Install R libraries
 
-Open [RStudio on rescomp](http://rescomp5105.gene.com:8080), 
-make sure you are using **R 3.5.1** or above, then:
+Open [RStudio on rescomp](http://rescomp5105.gene.com:8080).
+
+Then, on top right, switch to **R 3.5.1** or above.
+
+Then, install packages:
 
 ```r
 pkgs <- c("prodlim", "survival", "survminer", "glmnet", "pec", "pheatmap",
