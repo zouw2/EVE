@@ -51,6 +51,8 @@ install.packages(pkgs)
 
 ### Execute
 
+In RStudio, set up a `project folder` (set working directory), where the outputs will be collected.
+
 Go to [`examples`](https://github.roche.com/ED-EB/EVE/tree/master/examples) folder, copy sbatch_xxxx.R to your project folder. This R script 
 1. collects input parameters, including an engine script which may or may not be implemented in R, 
 2. prepares input data file if necessary
