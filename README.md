@@ -56,7 +56,7 @@ Go to [`examples`](https://github.roche.com/ED-EB/EVE/tree/master/examples) fold
 2. prepares input data file if necessary
 3. splits repeated CV or LOOCV by repeated calling the engine script on different CPU
 
-For more definition of user inputs in sbatch_xxx.R, please see [here](https://docs.google.com/spreadsheets/d/1OAmZDae7MF9NXBBwR6YpHjLxbUVFbFw7_y6HzFJegHY/edit#gid=0).
+For more definition of user inputs in sbatch_xxx.R, please see [Google Doc](https://docs.google.com/spreadsheets/d/1OAmZDae7MF9NXBBwR6YpHjLxbUVFbFw7_y6HzFJegHY/edit#gid=0).
 
 After you modify sbatch_xxx.R appropriately, then click **Source** in RStudio, 
 it will start running the models on different CPUs.
