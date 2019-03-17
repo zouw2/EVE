@@ -30,11 +30,11 @@ def get_RFE_sizes(RFE_step, ft_size):
             
             ft = ft_size
             sizes = []
-            step_size = RFE_int
+            step_size = round(RFE_float*ft)
             while step_size >= RFE_int:
-                step_size = round(RFE_float*ft)
                 sizes.append(int(ft))
                 ft -= step_size
+                step_size = round(RFE_float*ft)
         else:
             RFE_step = int(RFE_step)
             sizes = [i for i in range(ft_size,1,-1*RFE_step)]
