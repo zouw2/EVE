@@ -58,7 +58,8 @@ def grid_search(xgbc, X_train, Y_train, X_test, Y_test, evalm, weights=None):
                   "reg_alpha":[0,1,3,5]
                  }
 
-    # fit_params={"early_stopping_rounds":100, 
+    fit_params={"sample_weight": weights}
+    #             "early_stopping_rounds":100, 
     #             "sample_weight": weights,
     #             "eval_metric" : evalm, 
     #             "eval_set" : [(X_test, Y_test)],
@@ -69,16 +70,16 @@ def grid_search(xgbc, X_train, Y_train, X_test, Y_test, evalm, weights=None):
     if evalm == "cox-nloglik":
         parameters["n_estimators"] = [100, 300, 500]
         grid = RandomizedSearchCV(xgbc, parameters, cv=cv_sets, 
-                        #fit_params = fit_params, 
+                        fit_params = fit_params, 
                         n_jobs=-1, error_score = 0, n_iter = 30)
     elif evalm == "rmse":
         grid = RandomizedSearchCV(xgbc, parameters, cv=cv_sets, 
-                        #fit_params = fit_params, 
+                        fit_params = fit_params, 
                         n_jobs=-1, scoring = "neg_mean_squared_error",
                         error_score = 0, n_iter = 30)
     else:
         grid = RandomizedSearchCV(xgbc, parameters, cv=cv_sets, 
-                            #fit_params = fit_params,
+                            fit_params = fit_params,
                             scoring = 'f1_macro', n_jobs=-1,
                             error_score = 0, n_iter = 30)
 
