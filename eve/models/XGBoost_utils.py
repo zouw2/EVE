@@ -2,7 +2,7 @@
 ## 2018/09/20: implement pre-validation, use 'Gain' to do RFE (added an option for user to select what to use in RFE)
 
 import sys
-from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV
+from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV, StratifiedKFold
 from sklearn.externals import joblib 
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, roc_auc_score
 from sklearn.calibration import CalibratedClassifierCV
@@ -65,7 +65,7 @@ def grid_search(xgbc, X_train, Y_train, X_test, Y_test, evalm, weights=None):
     #             "eval_set" : [(X_test, Y_test)],
     #             "verbose": False}
     
-    cv_sets = KFold(n_splits=3, shuffle=True, random_state=42)
+    cv_sets = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
     
     if evalm == "cox-nloglik":
         parameters["n_estimators"] = [100, 300, 500]
