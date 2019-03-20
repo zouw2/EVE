@@ -48,7 +48,7 @@ install.packages(pkgs)
 
 ### Execute
 
-Go to [`examples`](https://github.roche.com/ED-EB/EVE/tree/master/examples) folder, copy sbatch_xxxx.R to your project folder. This R script 
+Go to [`examples`](https://github.roche.com/ED-EB/EVE/tree/master/examples) folder, copy sbatch_xxxx.R to your [project home](https://docs.google.com/spreadsheets/d/1OAmZDae7MF9NXBBwR6YpHjLxbUVFbFw7_y6HzFJegHY/edit#gid=0&range=A4). This R script 
 1. collects input parameters, including an engine script which may or may not be implemented in R, 
 2. prepares input data file if necessary
 3. splits repeated CV or LOOCV by repeated calling the engine script on different CPU
