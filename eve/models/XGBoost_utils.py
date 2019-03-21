@@ -157,10 +157,10 @@ def metrics(y_true, y_pred, y_pred_prob = None):
     
     return df_dict
 
-def confM(xgbc, X_test, Y_test, evalm, xgbc_cali=None, Y_test_surv=None):
+def confM(xgbc, X_test, Y_test, lbs, evalm, xgbc_cali=None, Y_test_surv=None):
     ## ToDo: this might cause problem, if Y_test does not contain all labels
-    lbs = Y_test.unique() 
-    lbs.sort()
+    #lbs = Y_test.unique() 
+    #lbs.sort()
     Y_pred = xgbc.predict(X_test)
     
     #df_dict = {}
@@ -287,6 +287,8 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
     df_grid = pd.DataFrame()
     
     features = X_train.columns.values
+    lbs =  Y_train.unique()
+    lbs.sort()
     ## grid search best hyper-param every 20% reduction in the loop
     for i, k in enumerate(ft_seqs):
         ## Remaining features (sorted)
@@ -366,9 +368,9 @@ def unit_train(xgbc, X_train, Y_train, X_test, Y_test, ft_seqs, evalm, HR_calc=F
         
         ## prevalidation evaluation
         if HR_calc:
-            df_prevalid_ = confM(xgbc, X_test.loc[:, top_fts], Y_test, evalm, xgbc_cali, Y_test_surv)
+            df_prevalid_ = confM(xgbc, X_test.loc[:, top_fts], Y_test, lbs, evalm, xgbc_cali, Y_test_surv)
         else:
-            df_prevalid_ = confM(xgbc, X_test.loc[:, top_fts], Y_test, evalm, xgbc_cali)
+            df_prevalid_ = confM(xgbc, X_test.loc[:, top_fts], Y_test, lbs, evalm, xgbc_cali)
         #df_error["size"] = X_train.shape[1]
         df_prevalid_["size"] = k
         #df_prevalid_["n_estimators"] = xgbc.best_iteration
