@@ -7,3 +7,5 @@ tests/log/
 tests/results
 *.pyc
 *.html
+examples/log
+examples/results
