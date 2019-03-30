@@ -169,8 +169,9 @@ read_rdata <- function(filepath, objName){
 #' @param project_name name of the project folder
 #' @param type indicate the parser to parse 'error', 'vimp', 'gridsearch', or 'rdata' which contains df_pred and df_vimp objeects
 #' @param objName (optional) For read_rdata; and possible values are df_pred or df_vimp
+#' @param requireCPrevalidation by default, this program tries to exclude seeds with missing cross validation runs to enable prevalidation
 #' 
-getResults <- function(project_home, project_name, type, objName = NULL){
+getResults <- function(project_home, project_name, type, objName = NULL, requireCPrevalidation=T){
   Path2Results <- paste0(project_home, "/results/", project_name)
   #print(paste("reading files in", Path2Results))
   
@@ -197,6 +198,7 @@ getResults <- function(project_home, project_name, type, objName = NULL){
   }
   
   ## some jobs might fail, so remove those
+  if( 'cv' %in% colnames(df) && requireCPrevalidation) {
   num.cv <- length(unique(df$cv))
   success_seeds <- df %>% 
     group_by(seed) %>% 
@@ -206,7 +208,10 @@ getResults <- function(project_home, project_name, type, objName = NULL){
   df.success <- df %>% 
     filter(seed %in% success_seeds)
   
-  return(df.success)
+    return(df.success)
+  }else{
+    return(df)
+  }
 }
 
 #' caret's confusionMatrix for getting precision, recall, F1, etc.
