@@ -92,8 +92,11 @@ sbatch_submit <- function(runSpec){
 #    runSpec$num_seeds <- 1 #maybe we need multiple runs with LOOCV as well
     
     ## num_CV becomes the total number of samples
-    df <- read.csv(paste(runSpec$project_home, runSpec$training_data, sep='/'), 
-                   as.is=T)
+
+    if(grepl('csv$', tolower(runSpec$training_data))) df <- read.csv(paste(runSpec$project_home, runSpec$training_data, sep='/'))
+    
+    if(grepl('rds$', tolower(runSpec$training_data))) df <- readRDS(paste(runSpec$project_home, runSpec$training_data, sep='/'))
+    
     runSpec$num_CV <- nrow(df)
   }
   
