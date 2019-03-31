@@ -135,7 +135,7 @@ elif df[label].nunique() > 2: ## if more than 2 classes
 
 elif df[label].nunique() == 2: ## if binary classes
     obj = "binary:logistic" 
-    evalm = "auc" ## "logloss""
+    evalm = "logloss" ## "auc"
     
 else:
     print("Label contains only 1 class.")
