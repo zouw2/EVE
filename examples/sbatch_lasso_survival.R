@@ -11,7 +11,7 @@ runSpec <- list(
 
   project_home = "~/EVE/examples",
   project_name = "lasso_survival_outCV_test",  
-  training_data = "data/test_regr_surv_tcga_brca.csv", 
+  training_data = "data/test_regr_surv_tcga_brca.csv", # or use saveRDS to save rds file
   label_name = NA, 
   sample_ID = "Patient_ID", 
   surv_col = "os_time", 

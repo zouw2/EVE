@@ -11,7 +11,7 @@ runSpec <- list(
 
   project_home = "~/EVE/examples",
   project_name = "lasso_binary_outCV_test",  
-  training_data = "data/test_binaryclass_tcga_brca.csv", 
+  training_data = "data/test_binaryclass_tcga_brca.csv", # or use saveRDS to save rds file
   label_name = "pam50_RNAseq",
   sample_ID = "Patient_ID", 
   surv_col = NA, 
