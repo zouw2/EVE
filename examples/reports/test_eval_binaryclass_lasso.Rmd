@@ -113,7 +113,8 @@ with(as.data.frame(df.vimp), hist(table(paste(cv, seed)),
 
 ```{r, fig.height=6, echo=FALSE}
 par(mar=c(5,20,4,2))
-barplot(tail(sort(table(df.vimp$feature)), 20), 
+top_f <- tail(sort(table(df.vimp$feature)), 20)
+barplot(top_f, 
         horiz =T, las=2, main='Number of times a feature is used')
 
 c1 <-  countUniqueFeatures(df.vimp)
