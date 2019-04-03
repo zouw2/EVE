@@ -9,7 +9,7 @@ generate_cmd <- function(runSpec, curr_seed, cv, file_run, file_cmd){
   log_path <- runSpec["log_path"]
   if(is.null(runSpec[['server_management']]) || is.na(runSpec[['server_management']]) || runSpec[['server_management']] == '') {
     runSpec[['server_management']] <- ''
-    if( runSpec$nthread > 1) runSpec[['server_management']] <- paste('-n', round(runSpec$nthread/2),'-R "span[hosts=1]"') #The CPU cores of each node support a feature called hyperthreading, wherein they are capable of running 2 threads each.
+    if(!is.null(runSpec$nthread) && runSpec$nthread > 1) runSpec[['server_management']] <- paste('-n', round(runSpec$nthread/2),'-R "span[hosts=1]"') #The CPU cores of each node support a feature called hyperthreading, wherein they are capable of running 2 threads each.
   }
   
   if(grepl("(py)$", runSpec$engine)){
