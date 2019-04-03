@@ -1,0 +1,154 @@
+---
+title: "Evaluate testing data (binary-class) - XGBoost"
+author: "EVE W."
+date: '`r Sys.Date()`'
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+
+
+```{r}
+## user input
+project_home <- "~/EVE/examples"
+project_name <- "xgboostR_binary_1"
+```
+
+## 0. Load Data
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(broom)
+library(caret)
+library(pROC)
+library(ggrepel)
+source("~/EVE/eve/reports/utils/PerformanceUtils.R")
+load(paste0(project_home,"/log/", project_name, "/metainfo.Rdata"))
+
+if(grepl("\\.r$|\\.R$", runSpec$engine)){
+  df.preval <- getResults(project_home, project_name, "rdata", objName = "df_pred")
+  df.vimp   <- getResults(project_home, project_name, "rdata", objName = "df_vimp")
+} else {
+  df.preval <- getResults(project_home, project_name, "prevalidation")
+  df.vimp   <- getResults(project_home, project_name, "vimp")
+}
+
+## get original data info
+df.orig <- read_csv(paste(project_home, runSpec$training_data, sep="/"))
+
+tot.sample <- dim(df.orig)[1]
+tot.feature <- max(df.preval$size)
+num.cv <- length(unique(df.preval$cv))
+num.seed <- length(unique(df.preval$seed))
+
+cat(tot.sample, "of samples were used \n")
+cat(tot.feature, "of full features\n")
+cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
+
+# if you think there are some unit run output is missing, use the following to figure out which ones are missing; then you can check out their log output to see whether there are specific errors
+
+# you may need adjust posSeed or posSplit value
+# Given a outcome name like 'glmnet_rdata_phenotype_seed1001_cv1.rdata', and the function splitting the output name by '_', the index of seed value is 4, and that of cv split is 5. So there are posSeed=4, posSplit = 5 below.
+#checkOutput(path = with(runSpec, paste(project_home,'results', project_name, sep='/')), pattern = paste( '\\.rdata', sep=''), posSeed=4, posSplit = 5 )
+
+
+if( runSpec$weight_col %in% colnames(df.orig) ){
+  cat('Weight/Labels:\n')
+  table( df.orig[[runSpec$weight_col]] )
+}else{
+  cat( "Labels:\n")
+ table(df.orig[[runSpec$label_name]])
+}
+```
+
+run with `r runSpec$engine`  evaluation metric: `r runSpec$evalm`.
+
+## 1. Scores
+
+### 1.1 Scores per Class
+
+```{r, fig.width=8, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+plt <- plotScores(df.preval, runSpec$label_name)
+plt$byClass +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_y_continuous(breaks = seq(0, 1, 0.05))
+```
+
+Confusion Matrix
+```{r, echo=FALSE}
+confusionMat(df.preval)
+```
+
+### 1.2 Average score
+
+```{r, echo=FALSE}
+plt$overall +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r, warning=FALSE, echo=FALSE}
+knitr::kable(eval.minmax(plt$df.scores), digits = 3)
+```
+
+
+## 2. Important Features
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+df.vimp.plt <- plotVIMP(df.vimp, bin = 50)
+df.vimp.avg <- df.vimp.plt$df
+
+## plot
+df.vimp.plt$plt.dist.f
+df.vimp.plt$plt.fts.f
+df.vimp.plt$plt.dist.g
+df.vimp.plt$plt.fts.g
+
+write_csv(df.vimp.avg, paste0(runSpec$outP, "/Analyzed_FeatureImportance_avg.csv"))
+```
+
+```{r, echo=FALSE, fig.height=8, fig.width=9}
+## vimp scatter plot
+plotVIMP_scatter(df.vimp, top_n = 20)
+```
+
+
+```{r, fig.width=8, echo=FALSE}
+library(pheatmap)
+plotHeatmap(df.vimp.plt$df, df.orig)
+```
+
+## 3. Hyper-parameters
+
+```{r, message=FALSE, echo=FALSE}
+df.grid <- getResults(project_home, project_name, type='rdata', objName= "df_grid")
+
+print( ggplot(data=df.grid, aes(max_depth)) +  geom_bar() + facet_wrap(~size, ncol=2) + theme_bw() + ggtitle ('optimal hyper-parameter across seed and cv') )
+
+print( ggplot(data=df.grid, aes(max_delta_step)) +  geom_bar() + facet_wrap(~size, ncol=2) + theme_bw() + ggtitle ('optimal hyper-parameter across seed and cv') )
+
+ggplot(data=df.grid, aes(x=n_estimators, group=size, col=factor(size))) + geom_density() + theme_bw() + ggtitle ('optimal hyper-parameter across seed and cv')
+
+```
+
+```{r ,echo=F, fig.height=5, fig.width=8, results='asis'}
+
+n_estimate_jitter <- 5
+
+p_md <- lapply(unique(df.grid$size), function(s1) myScatter(as.data.frame(subset(df.grid, size==s1)), x = 'n_estimators', y='max_depth',noise = c(x = n_estimate_jitter, y = 0.2), col.var='score', main = paste('at featureStep',s1), a = 0.6) + theme_bw() )  
+  
+#p_a <- lapply(unique(df.grid$size), function(s1)    myScatter(as.data.frame(subset(df.grid, size==s1)), x = 'n_estimators', y='reg_alpha',noise = c(x = n_estimate_jitter, y = 0.2), col.var='score', main = paste('at featureStep',s1), a = 0.6) + theme_bw()  )  
+ 
+p_mds <- lapply(unique(df.grid$size), function(s1)  myScatter(as.data.frame(subset(df.grid, size==s1)), x = 'n_estimators', y='max_delta_step',noise = c(x = n_estimate_jitter, y = 0.2), col.var='score', main = paste('at featureStep',s1) , a = 0.6) + theme_bw()  )  
+
+for (i in 1:length(p_md)){
+
+gridExtra::grid.arrange(p_md[[i]],  p_mds[[i]], ncol=2, nrow=2)
+
+}
+
+```
+
+
+
+

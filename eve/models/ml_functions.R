@@ -1,3 +1,328 @@
+mean1 <- function(a){
+  stopifnot(is.vector(a))
+    a <- a[!is.na(a)]
+    sum(a) / length(a)
+}
+
+harm.mean <- function(a){
+    stopifnot(all(a > 0))
+    1/mean1(1/a)
+}
+
+#both preds and labels use 0, 1, ... to indicate different levels. So the lowest level is 0, and additional levels add up.
+
+# in the returning matrix, row status correponds to prediction, and column status for truth( labels)
+create.xtab.nclass <- function(preds, labels, nclass=2 ) {
+#modified from https://gist.github.com/khotilov/a0bd2f617e11811ede89287e42796ba5  
+#  stopifnot( nclass == data.table::uniqueN(labels)) # the label vector must have all levels
+  
+  m1 <- matrix(tabulate(1 + preds + nclass*labels, nclass^2), ncol=nclass)
+  stopifnot(nrow(m1) == nclass)
+  stopifnot(ncol(m1) == nclass)
+  m1
+}
+
+pr_scores <- function(cm, substitute0 = 0.5){
+  # from https://blog.revolutionanalytics.com/2016/03/com_class_eval_metrics_r.html#perclass
+  # return value: element 1: precision of level 0, 1,2... ; element 2: recall of level 0,1,2
+  diag = diag(cm)
+  diag <- ifelse(diag == 0, substitute0, diag)
+  sum_pred = apply(cm, 1, sum) 
+  sum_label= apply(cm, 2, sum)
+  
+  return( list(precision = ifelse(sum_pred==0, substitute0/sum(sum_label), diag / sum_pred),   
+               recall =   diag / sum_label))
+}
+
+
+# using harmonic means seem to have too much contribution by the rarer subgroup. evalution metrics never improve so early stopping occurs very early
+#preds must be numbers
+f1_harmonic2 <- function(preds, dtrain) {
+  Actual = getinfo(dtrain, "label")
+  lv_a <-  sort(unique(Actual))
+  nc <- length(lv_a)
+  stopifnot(nc == 2)
+  if(! all(as.vector(preds) %in% lv_a) ) preds <- as.integer(preds >= 0.5)
+  stopifnot(all( as.vector(preds)  %in% lv_a))
+  value <- harm.mean(unlist(pr_scores(create.xtab.nclass(preds, Actual,nclass=nc))))
+  return(list(metric = "f1_harmonic2", value = value))
+}
+
+# log scale mean is equivalent to geometric mean. it does not help with orr prediction in oak either.
+#preds must be numbers
+f1_meanlog2 <- function(preds, dtrain) {
+  Actual = getinfo(dtrain, "label")
+  lv_a <-  sort(unique(Actual))
+  nc <- length(lv_a)
+  stopifnot(nc == 2)
+  if(! all(as.vector(preds) %in% lv_a) ) preds <- as.integer(preds >= 0.5)
+  stopifnot(all( as.vector(preds)  %in% lv_a))
+  value <- mean1(log(unlist(pr_scores(create.xtab.nclass(preds, Actual,nclass=nc)))))
+  return(list(metric = "f1_meanlog2", value = value))
+}
+
+
+#preds must be numbers
+f1_arithmetic2 <- function(preds, dtrain) {
+  Actual = getinfo(dtrain, "label")
+  lv_a <-  sort(unique(Actual))
+  nc <- length(lv_a)
+  stopifnot(nc == 2)
+  if(! all(as.vector(preds) %in% lv_a) ) preds <- as.integer(preds >= 0.5)
+  stopifnot(all( as.vector(preds)  %in% lv_a))
+  value <- mean1( unlist(pr_scores(create.xtab.nclass(preds, Actual,nclass=nc)))) 
+  return(list(metric = "f1_arithmetic2", value = value))
+}
+
+f1_1side_2 <- function(preds, dtrain) {
+  Actual = getinfo(dtrain, "label")
+  lv_a <-  sort(unique(Actual))
+  nc <- length(lv_a)
+  stopifnot(nc == 2)
+  if(! all(as.vector(preds) %in% lv_a) ) preds <- as.integer(preds >= 0.5)
+  stopifnot(all( as.vector(preds)  %in% lv_a))
+  pr <- pr_scores(create.xtab.nclass(preds, Actual,nclass=nc))
+  value <- min( sapply( 1:nc, function(i) harm.mean(c( pr[['precision']][i], pr[['recall']][i])) ) ) 
+  return(list(metric = "f1_1side_2", value = value))
+}
+
+print1 <- function(x, ...) print(paste(names(x),':', x, collapse = ' '), ...)
+
+xgbCVwrapper <- function(X_train, Y_train, X_test, Y_test , ft_seqs,  weight_train, params, spec, min_n_estimators=5 ){
+  
+  if(!is.null(spec$nthread) && spec$nthread > 1 && !('nthread' %in% names(params))){
+    params[['nthread']] <- spec$nthread 
+    print(paste('insteat nthread of',spec$nthread ,'to params'))
+  }
+  
+  internal_eval_metric <- c('error','rmse','logloss','mlogloss','auc','aucpr','merror', 'ndcg')
+  max_not_min <- grepl('auc|f1', params$eval_metric)
+  
+  per_cv_seed <- (spec$'localSeed' - spec$seed_base) * (nrow(X_train) + nrow(X_test) + 5) + spec$curr_cv #this seed should be different per cv per split/seed
+  
+  stopifnot(all(colnames(X_train) == colnames(X_test)))
+  
+  # allow users to replace default params specified in XGBoost.r
+  if(length(spec$tune_params) > 0 ) {
+    len <- sapply(spec$tune_params, length)
+    for (v in names(len)[len==1]){
+      params[[v]] <- spec$tune_params[[v]]
+      print(paste('assign', v,'as', spec$tune_params[[v]]))
+    }
+  }
+
+  if(max(ft_seqs) < ncol(X_train)){
+    print('add a full feature step to the rfe')
+    ft_seqs <- c(ncol(X_train), ft_seqs)
+  }
+  
+  rfe_grid <- ft_seqs
+  
+  if(length(ft_seqs) > length(spec$pct_feature_for_grid_search)){
+    r <- ncol(X_train) * spec$pct_feature_for_grid_search
+    rfe_grid <- sapply(r, function(v) ft_seqs[which.min(abs(v - ft_seqs))])
+  }
+
+  
+  
+  library(xgboost)
+  # from https://pages.github.roche.com/RWDScodeshare/RAADC_2018site/tutorials_xgboost/
+
+    
+  stopifnot(is.vector(Y_train))
+  stopifnot(is.vector(Y_test))
+
+  # Create folds within X_train. folds are the same across parameter grid (following roche tutorial)
+  # so far I put it above RFE
+  set.seed(spec$'localSeed')
+  folds1 <- stratFold ( outcome =  Y_train , fam = spec$family, num_CV = spec$nCv4lambda)
+
+  features <- colnames(X_train)
+
+  vimpL <- gridL <- predL <- list()
+  params2 <- params
+  
+  for (k in ft_seqs){
+  
+    # update the following object during RFE
+    top_fts = head( features, k) # features vector will be modified during RFE, top_fts holds the current features used in training
+  
+    stopifnot(all(top_fts %in% colnames(X_train)))
+    dtrain <- xgb.DMatrix(
+      data =  X_train[, top_fts] , 
+      label = Y_train,  # not do as.matrix as suggested originally
+      weight = weight_train
+    )
+  
+  
+  if(length(spec$tune_params) > 0 && k %in% rfe_grid){
+    
+    stopifnot(! 'eval_metric' %in% names(spec$tune_params)) # Not sure how to tune among different evaluation metric as they have different scale
+    e1 <- expand.grid(spec$tune_params, KEEP.OUT.ATTRS =F, stringsAsFactors=F)
+    paraList <- split(e1, seq(nrow(e1)))
+    paraList <- lapply(paraList, function(x) as.list(x))
+    paraList <- lapply(paraList, function(x) c(x, params[setdiff(names(params), names(x))]))
+    set.seed( per_cv_seed ) # so if there are many combinations, different CVs within the same seed will try different combinations
+    paraList <- sample( paraList ) # reshuffle it
+    
+#============grid search
+    print(paste('using', ifelse(max_not_min, 'max', 'min'),  params$eval_metric, 'to select the best in', min(length(paraList), spec$max_num_grid),'parameter combinations out of', length(paraList),'all possibilities at feature step', length(top_fts))) 
+    
+    start.time <- Sys.time()
+    
+    grid_best <- do.call(rbind, lapply( 1: min(length(paraList), spec$max_num_grid), function(i) {
+      print('parameters being evaluated:')
+      print1(paraList[[i]])
+      if(params[['eval_metric']] %in% internal_eval_metric ){
+      cv1 <- xgboost::xgb.cv(
+        params = paraList[[i]],
+        data = dtrain,
+        nrounds = ifelse(!(is.null(spec$n_estimators)||is.na(spec$n_estimators)), spec$n_estimators, spec$"n_estimators"),
+        folds = folds1, # so the cv split will be the same across the entire unit run
+        prediction = F,
+       # verbose = i ==1,
+       verbose=F,
+        print_every_n = 100,
+        metrics = params[['eval_metric']],
+        maximize =  max_not_min,
+        
+        early_stopping_rounds = ifelse(is.null(spec$early_stopping_rounds), round(2/params$"eta"), spec$early_stopping_rounds)  
+      )}else{ # use user defined feval
+        cv1 <- xgboost::xgb.cv(
+          params = paraList[[i]][setdiff(names(paraList[[i]]),'eval_metric')],
+          data = dtrain,
+          nrounds = ifelse(!(is.null(spec$n_estimators)||is.na(spec$n_estimators)), spec$n_estimators, spec$"n_estimators"),
+          folds = folds1, # so the cv split will be the same across the entire unit run
+          prediction = F,
+          # verbose = i ==1,
+          verbose=F,
+          print_every_n = 100,
+          feval = match.fun(params[['eval_metric']]),
+          maximize =  max_not_min,
+          
+          early_stopping_rounds = ifelse(is.null(spec$early_stopping_rounds), round(1/params$"eta"), spec$early_stopping_rounds)  
+        )
+      }
+      
+      el <- as.data.frame(cv1$evaluation_log)
+      
+      cv1$score <- el[el$iter == cv1$best_iteration, grep('test.*mean$', colnames(el), perl=T, value=T)]
+      
+      cv2 <- data.frame(size = cv1$nfeatures, score = cv1$score, n_estimators = cv1$"best_ntreelimit", cv1$params[setdiff(names(cv1$params), c( 'weight', 'silent'))], stringsAsFactors = F)
+      
+#      cv2$weight <- list(unique(cv1$params$weight))
+      cv2
+    }) )
+    
+ 
+    gridL[[as.character(k)]] <- grid_best
+    gridL[[as.character(k)]]$cv <- spec$curr_cv
+    end.time <- Sys.time()
+    
+    print(paste('grid search takes: ', round(difftime(end.time , start.time, units ="hours"),2),"hours")) 
+    
+    # end of grid search
+    
+    params2 <- as.list( grid_best[which.max( grid_best$score * ifelse(max_not_min, 1, -1)  ),  ] )
+ } 
+  
+  print( paste( 'parameter at step',k))   
+  print1(unlist( params2[setdiff(names(params2), c('size','score','weight','silent'))] ))
+  
+  set.seed(spec$'localSeed')
+   
+  nd1 <- ifelse('n_estimators' %in% names(params2), params2$n_estimators, 5/params2$eta) #https://www.slideshare.net/OwenZhang2/tips-for-data-science-competitions slide 14
+  
+  if(nd1 < min_n_estimators) nd1 <- min_n_estimators
+  
+   xgb.model <- xgboost::xgb.train(
+        params = params2[setdiff(names(params2), c('size','score','n_estimators','weight','silent','eval_metric'))],
+        data = dtrain,
+        nrounds = nd1
+      )
+ 
+     #get variable importance
+   
+   vimp <- as.data.frame ( xgb.importance(model = xgb.model) )
+   colnames(vimp) <- tolower(colnames(vimp))
+   
+   stopifnot(spec$RFE_criteria %in% colnames(vimp))
+   
+   vimp <- vimp[order(vimp[, spec$RFE_criteria] * -1), ]
+   # when the max_depth is low and the n_estimates is not too big, it is possible that some features are not used in the final model and vimp matrix does not contain the variable. Need figure out a univariate way to sort genes
+   
+   if(nrow(vimp) < length(top_fts)){
+     set.seed( per_cv_seed )
+     features <- c(vimp$feature, sample(setdiff(top_fts, vimp$feature))) # so here features vector is shorter than full feature list, but has the same length of top_fts
+   }else{
+     features <- vimp$feature
+   }
+   
+   # add columns to vimp to confirm to the reporting standard
+   
+   colnames(vimp) <- gsub('frequency','weight', colnames(vimp))
+   vimp$size <- length(top_fts)
+   vimp$cv  <-  spec$curr_cv
+   vimp$cover <- NULL
+   
+   vimpL[[as.character(k)]] <- vimp
+   
+   # Predict on the standalone test set
+   stopifnot(all(top_fts %in% colnames(X_test)))
+   
+   if( spec$family %in% 'binomial') {
+     predprob_1 = stats::predict(xgb.model, X_test[,top_fts,drop=F]) # the numbers we get are probabilities that a datum will be classified as 1
+     stopifnot(length(predprob_1) == nrow(X_test))
+     predprob_0 <- 1- predprob_1
+     xgb_prediction <- data.frame(pred = ifelse(predprob_1 > 0.5, 1,0), predprob_0, predprob_1,  stringsAsFactors = F)
+     }   
+   
+   if(  spec$family %in% "multinomial" ){
+     predprob <- stats::predict(xgb.model, X_test[,top_fts,drop=F], reshape=T)
+     stopifnot(ncol(predprob) == params2$num_class)
+     colnames(predprob) <- paste('predprob_', 0:(params2$num_class-1), sep='')
+     xgb_prediction <- data.frame(predprob)
+     xgb_prediction$pred <- apply(predprob, 1, which.max) -1
+   }
+   
+   xgb_prediction[[spec$label_name]] <- Y_test
+   xgb_prediction[['size']] <- length(top_fts)
+   xgb_prediction[['cv']] <- spec$curr_cv
+   xgb_prediction[[spec$sample_ID]] <- row.names(X_test)
+      
+   predL[[as.character(k)]] <- xgb_prediction
+  }
+  
+  list(do.call(rbind, vimpL) , do.call(rbind, gridL) , do.call(rbind, predL))
+} 
+
+
+stratFold <- function( outcome, fam, num_CV){
+  if (fam %in% 'cox') {
+    stopifnot(all(c('col_surv', 'col_event') %in% colnames(outcome)))
+    
+    return(  caret::createFolds(outcome[, "col_surv"] * (as.integer(outcome[, "col_event"]) - 0.5), 
+                                 k = num_CV, 
+                                 list = TRUE, returnTrain = FALSE) )
+  }
+  
+  stopifnot(is.vector(outcome))
+  
+  if (fam %in% c("multinomial", "binomial")) {
+    cvList <- caret::createFolds(as.factor(outcome), 
+                                 k = num_CV, 
+                                 list = TRUE, returnTrain = FALSE)
+  }
+  
+  if (fam %in% c("gaussian")) {
+    stopifnot(is.numeric(outcome))
+    cvList <- caret::createFolds(outcome, 
+                                 k = num_CV, 
+                                 list = TRUE, returnTrain = FALSE)
+  }
+  
+  cvList
+}
 
 decideRFEseq <- function(RFE_step  , ft){
   stopifnot( length(RFE_step) == 1 && RFE_step >= 0 )
@@ -5,7 +330,7 @@ decideRFEseq <- function(RFE_step  , ft){
   if (RFE_step == 0) return(ft)
 
   if(is.integer(RFE_step)){
-    return( seq(ft, RFE_step,  runSpec$RFE_step*-1) ) ## use fixed step_size
+    return( seq(ft, RFE_step,  RFE_step*-1) ) ## use fixed step_size
   }else{
     stopifnot(RFE_step > 1)
     step_size <-  min_step <- floor(RFE_step) # get the integer part as the min step size
