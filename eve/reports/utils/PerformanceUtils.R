@@ -814,7 +814,7 @@ plotVIMP_scatter <- function(df, ft_num=NULL, top_n=20){
   
   ggplot(df.vimp.topN, aes(freq.avg, gain.avg, label = feature)) +
     geom_point(alpha = 0.7, shape = 1) +
-    geom_text_repel(
+    ggrepel::geom_text_repel(
       nudge_x = 0,
       nudge_y = 0,
       segment.alpha = 0.5) +
