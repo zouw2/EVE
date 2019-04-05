@@ -151,6 +151,8 @@ cv_id <- 1
 start.time <- Sys.time()
 
 for (cv.idx in cvList){
+  per_cv_seed <- (specLocal$seed - runSpec$seed_base) * (nrow(x) + 5) + cv_id #this seed should be different per cv per split/seed
+  
   if (specLocal$cv_id_curr == 0){
     print("CVs within job")
     print(paste("Fold number:", cv_id))
@@ -164,7 +166,7 @@ for (cv.idx in cvList){
     print(paste('using', paste(head(cv.idx, 10), collapse=','),',etc, as validation' ))
     
     df.out <- glmnetCVwrapper2(X_train, Y_train, X_test, Y_test, 
-                               seed=specLocal$seed, 
+                               seed=per_cv_seed, 
                                glmnetFam = runSpec$family, 
                                a1 = runSpec$alpha, 
                                nCv4lambda = runSpec$nCv4lambda, 
@@ -184,37 +186,37 @@ for (cv.idx in cvList){
     
   } else {
     if (specLocal$cv_id_curr == cv_id){
-    print("1 CV per job")
-    print(paste("Fold number:", cv_id))
-    X_train = x[-cv.idx, featureList, drop=F]
-    Y_train = y[-cv.idx, , drop=F]
-    X_test  = x[ cv.idx, featureList, drop=F]
-    Y_test  = y[ cv.idx, , drop=F]
-    #Y_test  = cbind(Y_test, rownames(Y_test))
-    #colnames(Y_test) <- c(colnames(y), runSpec$sample_ID)
-    #Y_test[runSpec$sample_ID] <- rownames(Y_test)
-    print(paste('using', paste(head(cv.idx, 10), collapse=','),',etc, as validation' ))
-    df.out <- glmnetCVwrapper2(X_train, Y_train, X_test, Y_test, 
-                               seed=specLocal$seed, 
-                               glmnetFam = runSpec$family, 
-                               a1 = runSpec$alpha, 
-                               nCv4lambda = runSpec$nCv4lambda, 
-                               lambdaSum = match.fun(runSpec$lambdaSum), runPairs=runSpec$runPairs,
-                               lambdaChoice = runSpec$lambdaChoice, 
-                               w = runSpec$weight.value[-cv.idx])
-    
-    df_vimp_tmp <- data.frame( df.out$features,
-                              "lambda" = df.out$lambda,
-                              "cv" = cv_id)
-    df_pred_tmp <- df.out$pred
-    df_pred_tmp["cv"] <- cv_id
-#    df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test) ## add sample ID here
-    df_pred_tmp[[runSpec$sample_ID]] <- rownames(df_pred_tmp)
-    rownames(df_pred_tmp) <- NULL
-    df_vimp <- rbind(df_vimp, df_vimp_tmp)
-    df_pred <- rbind(df_pred, df_pred_tmp)
+      print("1 CV per job")
+      print(paste("Fold number:", cv_id))
+      X_train = x[-cv.idx, featureList, drop=F]
+      Y_train = y[-cv.idx, , drop=F]
+      X_test  = x[ cv.idx, featureList, drop=F]
+      Y_test  = y[ cv.idx, , drop=F]
+      #Y_test  = cbind(Y_test, rownames(Y_test))
+      #colnames(Y_test) <- c(colnames(y), runSpec$sample_ID)
+      #Y_test[runSpec$sample_ID] <- rownames(Y_test)
+      print(paste('using', paste(head(cv.idx, 10), collapse=','),',etc, as validation' ))
+      df.out <- glmnetCVwrapper2(X_train, Y_train, X_test, Y_test, 
+                                 seed=per_cv_seed, 
+                                 glmnetFam = runSpec$family, 
+                                 a1 = runSpec$alpha, 
+                                 nCv4lambda = runSpec$nCv4lambda, 
+                                 lambdaSum = match.fun(runSpec$lambdaSum), runPairs=runSpec$runPairs,
+                                 lambdaChoice = runSpec$lambdaChoice, 
+                                 w = runSpec$weight.value[-cv.idx])
+      
+      df_vimp_tmp <- data.frame( df.out$features,
+                                "lambda" = df.out$lambda,
+                                "cv" = cv_id)
+      df_pred_tmp <- df.out$pred
+      df_pred_tmp["cv"] <- cv_id
+  #    df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test) ## add sample ID here
+      df_pred_tmp[[runSpec$sample_ID]] <- rownames(df_pred_tmp)
+      rownames(df_pred_tmp) <- NULL
+      df_vimp <- rbind(df_vimp, df_vimp_tmp)
+      df_pred <- rbind(df_pred, df_pred_tmp)
     }
-    }
+  }
   cv_id <- cv_id + 1
 }
 
