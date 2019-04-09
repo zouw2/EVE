@@ -162,9 +162,13 @@ xgbCVwrapper <- function(X_train, Y_train, X_test, Y_test , ft_seqs,  weight_tra
     paraList <- split(e1, seq(nrow(e1)))
     paraList <- lapply(paraList, function(x) as.list(x))
     paraList <- lapply(paraList, function(x) c(x, params[setdiff(names(params), names(x))]))
+    
+    if((!is.null(spec$max_num_grid)) && (!is.na(spec$max_num_grid)) && spec$max_num_grid > 0){ # if a user provides max_num_grid
     set.seed( per_cv_seed ) # so if there are many combinations, different CVs within the same seed will try different combinations
     paraList <- sample( paraList ) # reshuffle it
-    
+    }else{ # if a user does not provide max_num_grid
+      spec$max_num_grid <- length(paraList)
+    }
 #============grid search
     print(paste('using', ifelse(max_not_min, 'max', 'min'),  params$eval_metric, 'to select the best in', min(length(paraList), spec$max_num_grid),'parameter combinations out of', length(paraList),'all possibilities at feature step', length(top_fts))) 
     
@@ -269,6 +273,11 @@ xgbCVwrapper <- function(X_train, Y_train, X_test, Y_test , ft_seqs,  weight_tra
    
    # Predict on the standalone test set
    stopifnot(all(top_fts %in% colnames(X_test)))
+   
+   if (spec$family %in%  "gaussian") {
+     pred <-      stats::predict(xgb.model, X_test[,top_fts,drop=F])
+     xgb_prediction <- data.frame(pred,  stringsAsFactors = F)
+   }
    
    if( spec$family %in% 'binomial') {
      predprob_1 = stats::predict(xgb.model, X_test[,top_fts,drop=F]) # the numbers we get are probabilities that a datum will be classified as 1
@@ -426,9 +435,9 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     colnames(Y_test) <- c('time','status')
     
     ## drop samples if their time is 0
-    idx2drop <- Y_train[, "time"] == 0
+    idx2drop <- is.na( Y_train[, "time"] ) | Y_train[, "time"] <= 0
     if(any(idx2drop)){
-      print(paste("Drop", sum(idx2drop), "samples with survival time = 0."))
+      print(paste("Drop", sum(idx2drop), "samples with survival time < 0 or missing."))
       Y_train <- Y_train[!idx2drop, ]
       X_train <- X_train[!idx2drop, ]
       w <- w[!idx2drop] ## drop the weights associated with those samples as well
