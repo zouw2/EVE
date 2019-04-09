@@ -3,7 +3,9 @@
 
 #para = c('1002', "~/2OBD/PDL1mab/go28915_oak/clinical_unofficial/log//metainfo.Rdata", '1')
 
-
+if( ! (R.version$major >= 3 && R.version$minor >= 5.1 )) {
+  stop(paste('reporting needs R version >= 3.5.1'))
+}
 
 source('~/EVE/eve/models/ml_functions.R')
 
@@ -91,6 +93,7 @@ if (runSpec$family %in% c("multinomial", "binomial")) {
 if (runSpec$family %in% c("gaussian")) {
   stopifnot(runSpec$label_name %in% colnames(df))
   y <- df[, runSpec$label_name, drop=F] # y will be handled similarly for cox and categorical outcome
+  y[[runSpec$label_name]] <- as.numeric(y[[runSpec$label_name]] )
 }  
 
 # the reason to keep y is to handle survival outcome (which has 2 columns). So far xgboost in R does not handle survival data yet; and its documuation wants label as vector. 
@@ -156,7 +159,7 @@ xgb_params <- list(
   #  "min_child_weight" = 1, # 1, [0,∞], If the tree partition step results in a leaf node with the sum of instance weight less than min_child_weight, then the building process will give up further partitioning. In linear regression mode, this simply corresponds to minimum number of instances needed to be in each node. The larger, the more conservative the algorithm will be.
   #  "max_delta_step"= 0, # 0, [0,∞], Usually this parameter is not needed, but it might help in logistic regression when class is extremely imbalanced. Set it to value of 1-10 might help control the update
   #  "subsample"= 1, # 1, [0,1], subsample ratio of the training instance. Setting it to 0.5 means that XGBoost randomly collected half of the data instances to grow trees and this will prevent overfitting.
-  "colsample_bytree"= 0.8, # 1, [0,1], subsample ratio of columns when constructing each tree
+#  "colsample_bytree"= 0.8, # 1, [0,1], subsample ratio of columns when constructing each tree
   
   # although the r document says lambda and alpha are parameters only for linear booster in r; the general xgboost document says otherwise. From this discussion (https://github.com/dmlc/xgboost/issues/2656), both alpha and lambda are usable for gbtree. 
   #  "lambda"= 1, # 1 (python) or 0 (r), L2 regularization term on weights, increase this value will make model more conservative
@@ -170,9 +173,8 @@ xgb_params <- list(
 )
 
 
-if(length(unique(y[, 1])) > 2) {
+if(length(unique(y[, 1])) > 2 && runSpec$family == "multinomial") {
   xgb_params[["num_class"]] = length(unique(y[, 1]))
-  stopifnot(runSpec$family == "multinomial")
 }  
 
 ###############
