@@ -1,0 +1,177 @@
+---
+title: "Evaluate testing data (regression) - xgboost"
+author: "EVE W."
+date: '`r Sys.Date()`'
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+ 
+```{r}
+## user input
+project_home <- "~/EVE/examples"
+project_name <- "xgboostR_regression_1"
+```
+
+## 0. Load Data
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(broom)
+library(caret)
+library(pROC)
+library(ggrepel)
+source("~/EVE/eve/reports/utils/PerformanceUtils.R")
+load(paste0(project_home,"/log/", project_name, "/metainfo.Rdata"))
+
+if(grepl("\\.r$|\\.R$", runSpec$engine)){
+  df.preval <- getResults(project_home, project_name, "rdata", objName = "df_pred")
+  df.vimp   <- getResults(project_home, project_name, "rdata", objName = "df_vimp")
+} else {
+  df.preval <- getResults(project_home, project_name, "prevalidation")
+  df.vimp   <- getResults(project_home, project_name, "vimp")
+}
+
+## get original data info
+df.orig <- read_csv(paste(project_home, runSpec$training_data, sep="/"))
+
+tot.sample <- dim(df.orig)[1]
+tot.feature <- max(df.preval$size)
+num.cv <- length(unique(df.preval$cv))
+num.seed <- length(unique(df.preval$seed))
+
+cat(tot.sample, "of samples were used \n")
+cat(tot.feature, "of full features\n")
+cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
+
+# if you think there are some unit run output is missing, use the following to figure out which ones are missing; then you can check out their log output to see whether there are specific errors
+
+# you may need adjust posSeed or posSplit value
+# Given a outcome name like 'glmnet_rdata_phenotype_seed1001_cv1.rdata', and the function splitting the output name by '_', the index of seed value is 4, and that of cv split is 5. So there are posSeed=4, posSplit = 5 below.
+#checkOutput(path = with(runSpec, paste(project_home,'results', project_name, sep='/')), pattern = paste( '\\.rdata', sep=''), posSeed=4, posSplit = 5 )
+
+cat(runSpec$label_name, ":\n")
+summary(df.orig[[runSpec$label_name]])
+```
+
+run with `r runSpec$engine` with evaluation metric: `r ifelse(is.null(runSpec$evalm), 'default', runSpec$evalm)`.
+
+## 1. Scores
+
+
+```{r, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+plt <- plotRMSE(df.preval, label_name = runSpec$label_name)
+plt$overall
+```
+
+```{r, warning=FALSE, echo=FALSE}
+knitr::kable(eval.minmax(plt$df.scores), digits = 3)
+```
+
+
+### correlation
+
+```{r, echo=FALSE}
+correlation(df.preval)
+```
+
+## 2. Important Features
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+df.vimp.plt <- plotVIMP(df.vimp, bin = 50)
+df.vimp.avg <- df.vimp.plt$df
+
+## plot
+df.vimp.plt$plt.dist.f
+df.vimp.plt$plt.fts.f
+df.vimp.plt$plt.dist.g
+df.vimp.plt$plt.fts.g
+
+write_csv(df.vimp.avg, paste0(runSpec$outP, "/Analyzed_FeatureImportance_avg.csv"))
+```
+
+```{r, echo=FALSE, fig.height=8, fig.width=9}
+## vimp scatter plot
+plotVIMP_scatter(df.vimp, top_n = 20)
+```
+
+```{r, fig.width=8, echo=FALSE, eval=F}
+# there is a bug here.
+library(pheatmap)
+plotHeatmap(df.vimp.plt$df, df.orig)
+```
+
+## 3. Hyper-parameters
+
+```{r, message=FALSE, echo=FALSE}
+df.grid <- as.data.frame ( getResults(project_home, project_name, type='rdata', objName= "df_grid") )
+
+score_label <- ifelse ( !(is.null( runSpec$evalm ) || is.na(runSpec$evalm)), runSpec$evalm, unname(c('binomial' = "logloss", "multinomial"= "mlogloss", "gaussian" = 'rmse')[runSpec$family]))
+
+```
+
+parameter optimization file (`r nrow(df.grid)` records) includes `r length(unique(df.grid$seed))` seeds. Each seed generates `r length(unique(df.grid$cv))` cv splits. Within each cv split, there is a `r length(unique(df.grid$size))` step RFE (at `r sort(unique(df.grid$size))`). So `r nrow(df.grid)` / `r length(unique(df.grid$seed))` / `r length(unique(df.grid$cv))` / `r length(unique(df.grid$size))` = `r nrow(df.grid)/length(unique(df.grid$seed))/length(unique(df.grid$cv))/length(unique(df.grid$size))` parameter combinations tried in each cv split. 
+
+###   all grid search results
+
+```{r marginal effect, message=FALSE, echo=FALSE}
+
+#code here works best if each cv evaluate the same set of parameter combinations and df.grid has the complete information.
+
+source("~/EVE/eve/reports/utils/violin.r")
+
+tuned_var <-  names(runSpec$tune_params)[sapply(runSpec$tune_params, length) > 1]
+
+for (v in tuned_var)  print( violinPlot( df.grid , x = v, y = 'score', ylab=score_label, v.facets='size') ) 
+
+
+```
+
+
+```{r joint, echo=F, fig.width=8, fig.height=10}
+# joint distribution
+df.grid$para_comb <- apply(df.grid[, tuned_var, drop= F], 1, paste, collapse=',')
+
+violinPlot( df.grid , x = 'para_comb', y ='score', ylab=score_label, xlab= paste(tuned_var, collapse = ','), h.facets='size', x.anns.angle = 90) 
+```
+
+### over best parameter combo per cv
+
+Note the 2nd /3rd best parameter combinations might not be too bad either.
+
+```{r parameter distribution,  echo=F}
+
+grid_best <- plyr::ddply( df.grid , .variables = c('seed', 'size','cv'), .fun=function(x){
+  x <- x[order(x$score * -1) , ] # multiply by 1 if the larger is better, multiply by -1 if the smaller the better
+  tail(x, 1)
+})
+
+for (v in tuned_var){
+print( ggplot(data=grid_best, aes_string(v)) +  geom_bar() + facet_wrap(~size, ncol=2) + theme_bw() + xlab(v) + ggtitle (paste('optimal',v,'across seed and cv') ))
+}
+
+
+ggplot(data=grid_best, aes(x=n_estimators, group=size, col=factor(size))) + geom_density() + theme_bw() + ggtitle ('optimal n_estimator within seed and cv')
+
+
+
+```
+
+
+### more about the best parameter combination selection 
+
+```{r find the best parameter, echo=T, fig.width=4, fig.height=4}
+
+select_ft_step <- 101
+
+df1 <- subset(grid_best, size==select_ft_step & max_depth==5 &  max_delta_step == 0 )
+print( paste('summary of n estimator at',select_ft_step, 'feature step'))
+print(summary(df1$n_estimators))
+
+df2 <- subset(df.grid, size==select_ft_step & max_depth==5 &  max_delta_step == 0 )
+
+with(df2, plot(x = n_estimators, y=score, ylab=score_label))
+
+
+```
+ 
