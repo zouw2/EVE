@@ -6,8 +6,8 @@
 ################
 runSpec <- list( # to be moved to  sbatch later
   seed_base = 1000,
-  num_seeds = 4,
-  num_CV = 3, # -1 for LOOCV
+  num_seeds = 5,
+  num_CV = -1, # -1 for LOOCV
   
   project_home = "~/EVE/examples",
   project_name = "xgboostR_multi_1",  
@@ -18,7 +18,7 @@ runSpec <- list( # to be moved to  sbatch later
   event_col = NA, 
   weight_col = NA, ## colname for the weights
   nCv4lambda = 3,
-  RFE_step = 20.2 , 
+  RFE_step = 30.2 , 
   
   engine = "XGBoost.r", 
   family = "multinomial",
@@ -26,13 +26,13 @@ runSpec <- list( # to be moved to  sbatch later
   split_CVs = T,
   queue_priority = "short", ## short, medium, long
 #  server_management =  '-n 12 -R "span[hosts=1] rusage[mem=12]"', # this asks for a cluster with 12 o more CPU, each with 12G memory or more
-nthread=4, # this will feed into R implementation xgb.cv and xgb.train. a large number may increase the speed of cv, but make you wait longer to get access to the requested node. the python implementation of xgboost seems to able to grab what ever nodes avaiable; for the R version xgboost availabe in R 3.5.1, it seems we have to explicitly request it.
+nthread=12, # this will feed into R implementation xgb.cv and xgb.train. a large number may increase the speed of cv, but make you wait longer to get access to the requested node. the python implementation of xgboost seems to able to grab what ever nodes avaiable; for the R version xgboost availabe in R 3.5.1, it seems we have to explicitly request it.
   "n_estimators" = 3000, # the largest number of round
 #  'early_stopping_rounds' = 200, # how often to check early stopping, if not specified, use 1/eta
   evalm = NA, # this info will determine the eval_metric element in xgb_params. if not specified, the default will be ('binomial' = "logloss", "multinomial"= "mlogloss", "gaussian" = 'rmse'). customer evaluation functions currently implement: f1_harmonic2,f1_meanlog2 (similar to geometric mean),f1_arithmetic2
-  tune_params = list(max_depth = c(1,3,5), max_delta_step=c(0,1,3), alpha = c(0,3)), # if a vector of length 1 is specified, the parameter will be assigned to xgb (and potential overwrite default parameter if conflict)
-  pct_feature_for_grid_search = seq(1, 0.2, -0.3),
-  max_num_grid = 3 # if there are more than this number of combinations, pick a random portion of it. too many grid search will make code very slow
+  tune_params = list( max_depth = seq(1,10,2), max_delta_step=c(0,1,3), alpha = c(0,3), colsample_bytree=c(0.3, 0.5,0.8), gamma = 0:2 ), # if a vector of length 1 is specified, the parameter will be assigned to xgb (and potential overwrite default parameter if conflict)
+  pct_feature_for_grid_search = 1,
+  max_num_grid = 27 # if there are more than this number of combinations, pick a random portion of it. too many grid search will make code very slow
 )
 
 
