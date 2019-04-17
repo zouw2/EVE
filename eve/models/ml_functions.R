@@ -118,7 +118,9 @@ xgbCVwrapper <- function(X_train, Y_train, X_test, Y_test , ft_seqs,  weight_tra
   
   rfe_grid <- ft_seqs
   
-  if(length(ft_seqs) > length(spec$pct_feature_for_grid_search)){
+  if( !(is.null(spec$pct_feature_for_grid_search) || is.na(spec$pct_feature_for_grid_search)) && 
+    is.numeric(spec$pct_feature_for_grid_search) && 
+    length(ft_seqs) > length(spec$pct_feature_for_grid_search)){
     r <- ncol(X_train) * spec$pct_feature_for_grid_search
     rfe_grid <- sapply(r, function(v) ft_seqs[which.min(abs(v - ft_seqs))])
   }
