@@ -334,8 +334,22 @@ stratFold <- function( outcome, fam, num_CV){
 }
 
 decideRFEseq <- function(RFE_step  , ft){
-  stopifnot( length(RFE_step) == 1 && RFE_step >= 0 )
+#  stopifnot( length(RFE_step) == 1 && RFE_step >= 0 )
+  if( is.null(RFE_step) || is.na(RFE_step) || nchar(as.character(RFE_step))==0){
+    print('no RFE specified, just use full feature set')
+    return(ft)
+  }
+
+  if( !is.numeric(RFE_step) ){
+      print(paste('could not interpret the input RFE_step:', paste(RFE_step, collapse=',')))
+      print('just use full feature set')
+      return(ft)
+  }
   
+## if user provides a vector of steps, just return as is
+if( length(RFE_step) > 1 ) return( RFE_step )
+
+## if user provides a single value
   if (RFE_step == 0) return(ft)
 
   if(is.integer(RFE_step)){

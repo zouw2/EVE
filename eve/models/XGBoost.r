@@ -126,17 +126,7 @@ nFeature <- length(featureList)
 ## handle RFE steps ##
 ######################
 
-RFE_step <- runSpec$RFE_step
-
-## if user provides a vector of steps
-if(length(RFE_step) > 1){ 
-  sizes <- RFE_step
-  
-  ## if user provides a single value
-} else {
-  sizes <- decideRFEseq(RFE_step = runSpec$RFE_step, ft =nFeature)
-} 
-
+sizes <- decideRFEseq(RFE_step = runSpec$RFE_step, ft =nFeature)
 
 stopifnot(max(sizes) <= nFeature)
 
