@@ -104,6 +104,9 @@ sbatch_submit <- function(runSpec){
     runSpec$num_CV <- nrow(df)
   }
   
+  ## check for specification of nCv4lambda, the number of CV for nested CV
+  if(is.null(runSpec$nCv4lambda)) runSpec$nCv4lambda <- 5
+  
   # if python engine, save runSpec as txt
   if(grepl("(py)$", runSpec$engine)){
     capture.output(print(runSpec), 
