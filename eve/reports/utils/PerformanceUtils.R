@@ -632,9 +632,10 @@ plotCalibration <- function(df, ft_num = NULL, cuts = 10){
 #' @param top_n_by size or freq. Select top_n features according to average coefficient size, or according to frequency of occurrence across CVs(before averging within a seed). Frequency may be preferred if X was not scaled.
 #' @param ft_name character vector, to limit VIMP plot to certain features. When ft_name is provided, top_n will be ignored
 #' @param bins integer, number of bins for histogram of feature importance frequency
-#' @param ignore_neg bool, choose whether to ignore negative vimp when plotting. 
-#'                   In lasso, negative coefficient is important as well. 
-#'                   But in rfsrc, negative vimp might be least important, so need to remove them. 
+#' @param ignore_neg bool, choose whether to use the original value of vimp when assessing variable importance 
+#'                   It operates on average (across seed) of vimp sum(across CV within seed).
+#'                   In lasso, negative coefficient is important as well (ignore_neg= F, default). 
+#'                   But in rfsrc, negative vimp might be least important (ignore_neg=T) and hence ignored. 
 #' @param non_zero_value a small positive real number (eg 1e-6). If this value is specified, records with abs(vimp) less than the value will be removed before any calculation. This is mainly to support multi-variate lasso where certain features with zero coefficients are included.
 #' 
 plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
