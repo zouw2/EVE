@@ -637,7 +637,7 @@ plotCalibration <- function(df, ft_num = NULL, cuts = 10){
 #'                   But in rfsrc, negative vimp might be least important, so need to remove them. 
 #' @param non_zero_value a small positive real number (eg 1e-6). If this value is specified, records with abs(vimp) less than the value will be removed before any calculation. This is mainly to support multi-variate lasso where certain features with zero coefficients are included.
 #' 
-plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="size", ft_name=NULL,
+plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
                       bins=50, ignore_neg=FALSE, non_zero_value=NA){
   stopifnot(top_n_by %in% c("size", "freq"))
 
@@ -645,9 +645,11 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="size", ft_name=NULL,
     ft_num <- max(df$size)
   }
   
-  if(! (missing(non_zero_value) || is.null(non_zero_value) || is.na(non_zero_value) || non_zero_value <= 0)){
+  if(! (missing(non_zero_value) || is.null(non_zero_value) ||
+        is.na(non_zero_value) || non_zero_value <= 0)){
     toRemove <- abs( df[, 'vimp'] ) < non_zero_value
-    print(paste('removing', sum(toRemove),'records as their vimp is less than', non_zero_value))
+    print(paste('removing', sum(toRemove),'records as their vimp is less than',
+                non_zero_value))
     df <- df[!toRemove, ,drop=F]
   }
 
@@ -656,8 +658,14 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="size", ft_name=NULL,
     group_by(seed, feature) %>% 
     summarise(sum_vimp = sum(vimp, na.rm = T)) %>% 
     group_by(feature) %>% 
-    summarise(vimp.avg = mean(sum_vimp, na.rm = T)) %>% 
-    mutate(sign = ifelse(vimp.avg>=0, "pos", "neg"), ## this is for lasso's coefficient which may contain negative values
+      summarise(
+          ## derive mean and CI for plots
+          vimp.avg = mean(sum_vimp, na.rm = T),
+          lower = quantile(sum_vimp, probs=0.025),
+          upper = quantile(sum_vimp, probs=0.975)
+          ) %>% 
+    ## sign is for lasso's coefficient which may contain negative values
+    mutate(Sign = ifelse(vimp.avg>=0, "Pos", "Neg"), 
            vimp.avg.abs = abs(vimp.avg))
   
   if(ignore_neg){
@@ -665,68 +673,86 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="size", ft_name=NULL,
       mutate(vimp.avg.abs = vimp.avg)
   }
   
-  df.top.f <- df.vimp.scores %>% 
-    arrange(desc(vimp.avg.abs)) ## descending order
-  
-  ## used for plt3, and if top_n_by="freq"
-  top_features_by_freq_df <- df %>%
-      ## count occurrences, and take top_n
+  ## used if top_n_by="freq"
+  ## start with ORIGINAL df
+  df.feature.freq <- df %>%
+      ## add column `n` with counts
       count(feature) %>%
       arrange(desc(n)) %>%
-      slice(1:top_n)
+      ## also derive rank if preferred for plots
+      ## nrow(df.vimp.scores) == number of features
+      mutate(rank=1:nrow(df.vimp.scores))
+
+  assertthat::assert_that(nrow(df.feature.freq) == nrow(df.vimp.scores))
+
+  ## for subsetting, extract top features into a vector
+  top_features_by_freq <- df.feature.freq %>%
+      slice(1:top_n) %>%
+      pull(feature)
 
   ## User can provide which features they want in `ft_name`. Otherwise, take
   ## `top_n` features according to `top_n_by`
+  df.top.f <- df.vimp.scores %>% 
+      ## add rank info for some plots
+      left_join(
+          df.feature.freq %>% select(feature, n, rank),
+          by="feature")
+  
   if(!is.null(ft_name)) {
     df.top.f <- subset(df.top.f, feature %in% ft_name )
   } else if (top_n_by == "size") {
     df.top.f <- df.top.f %>% 
+      arrange(desc(vimp.avg.abs)) %>%
       slice(1:top_n) 
   } else if (top_n_by == "freq") {
-      ## extract features as vector
-      top_features_by_freq <- top_features_by_freq_df %>% pull(feature)
-      df.top.f <- subset(df.top.f, feature %in% top_features_by_freq)
+      df.top.f <- subset(df.top.f, feature %in% top_features_by_freq) %>%
+        arrange(desc(n))
   }
 
-  df.top.f <- df.top.f  %>%  arrange(vimp.avg.abs) ## acsending order, this is to plot the vimp from top-down
-
-  plt1 <- ggplot(df.vimp.scores, aes(x=vimp.avg)) + 
+  ## PLOT 1 of 2
+  plt.dist.f <- ggplot(df.vimp.scores, aes(x=vimp.avg)) + 
     geom_histogram(color="black", fill="white", bins=bins) +
     theme_bw() +
     ylab("Frequency") +
     xlab("Average (across seeds) of vimp (sum of all CVs per seed)") +
-    ggtitle(paste("With", ft_num, "features based on vimp"))
+    ggtitle(paste("From", ft_num, "feature step based on vimp"))
   
-  plt2 <- ggplot(df.top.f, aes(x=feature, y=vimp.avg.abs, fill=sign)) +
-    geom_bar(stat="identity", alpha=0.7) +
-    scale_x_discrete(limits=df.top.f$feature) +
-    scale_fill_manual(values=c("#999999", "#000000")) +
-    coord_flip() +
-    theme_bw() +
-    labs(x="Feature", y="Importance") +
-    ggtitle(paste("Top", top_n, "features at", ft_num, "feature set"))
-  
-  ## plot frequencies of features
-  plt3 <- ggplot(top_features_by_freq_df, aes(x=reorder(feature, n), y=n)) +
+  ## PLOT 2 of 2
+  ## extract options for plot annotation
+  RANGE <- diff(range(df.top.f$vimp.avg, finite = TRUE))
+  YMIN <- min(df.top.f$vimp.avg) - RANGE/2
+
+  if (top_n_by == "size") {
+      plt.features.base <- ggplot(df.top.f, aes(x=stats::reorder(feature, vimp.avg.abs),
+                                                y=vimp.avg)) +
+          ggtitle(paste("Feature importance by",
+                        ifelse(ignore_neg,'','absolute')," VIMP magnitude"))
+  }
+  else {
+      plt.features.base <- ggplot(df.top.f, aes(x=stats::reorder(feature, n),
+                                                y=vimp.avg)) +
+          ggtitle("Feature importance by usage frequency")
+  }
+
+  plt.features <- plt.features.base +
       geom_col() +
-      ## horizontal bars
+      geom_errorbar(aes(ymin=lower, ymax=upper), width=0.4, alpha=1) +
+      geom_text(aes(y = YMIN, label=n)) +
+      labs(x="Feature", y="Importance (95% CI)") +
       coord_flip() +
-      theme_bw() +
-      labs(x="Feature", y="Frequency") +
-      ggtitle("Top features, by frequency of occurrence")
-
-
+      theme_bw()
+      
   return(list(df = df.vimp.scores,
-              plt.dist.f = plt1,
-              plt.fts.f  = plt2,
-              plt.freq.f = plt3
+              plt.dist.f = plt.dist.f,
+              plt.features = plt.features
               ))
 }
 
 #' This is to visualize Lasso's multi-class prediciton VIMP
 #' Because it outputs vimp for each class, we have to loop through each class
 #' 
-plotVIMP2.multiclass <- function(df, ft_num=NULL, top_n=20, bins=30, ...){
+plotVIMP2.multiclass <- function(df, ft_num=NULL, top_n=20, top_n_by="freq",
+                                 bins=30, ...){
   idx <- grepl("vimp_", colnames(df))
   vimps <- colnames(df)[idx]
   classes <- gsub("vimp_", "", vimps)
@@ -737,12 +763,13 @@ plotVIMP2.multiclass <- function(df, ft_num=NULL, top_n=20, bins=30, ...){
     idx.col <- grepl("vimp_", colnames(df.vimp.tmp))
     colnames(df.vimp.tmp)[idx.col] <- "vimp"
     
-    df.vimp.plt <- plotVIMP2(df.vimp.tmp, bins = bins, top_n = top_n, ...)
+    df.vimp.plt <- plotVIMP2(df.vimp.tmp, bins = bins, top_n = top_n,
+                             top_n_by = top_n_by, ...)
     ## plot
     plt1 <- df.vimp.plt$plt.dist.f +
       ggtitle(paste("Distribution of Feature Coefficient for Class", classes[i]))
     print(plt1)
-    plt2 <- df.vimp.plt$plt.fts.f +
+    plt2 <- df.vimp.plt$plt.features +
       ggtitle(paste("Top Features for Class", classes[i]))
     print(plt2)
   }
