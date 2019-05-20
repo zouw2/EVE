@@ -983,7 +983,8 @@ correlation <- function(df, seed_num=NULL){
 #'  @param df dataframe of average vimp. usually from the output of plotVIMP/plotVIMP2
 #'  @param df.orig dataframe of original input data
 #' 
-plotHeatmap <- function(df, df.orig, top_n=20, classification=FALSE){
+plotHeatmap <- function(df, df.orig, top_n=20, classification=FALSE, scaleBy='row'){
+  
   
   if(grepl("lasso", tolower(runSpec$engine))){
     vimp_name <- as.name("vimp.avg")
@@ -1030,7 +1031,7 @@ plotHeatmap <- function(df, df.orig, top_n=20, classification=FALSE){
   rownames(annot.col) <- colnames(df.in)
   title <- paste0("Heatmap of top ", top_n, " important features")
   plt <- pheatmap::pheatmap(df.in,
-                            scale = "row",
+                            scale = scaleBy,
                             annotation_row = annot.row,
                             annotation_col = annot.col,
                             cluster_cols = F,
