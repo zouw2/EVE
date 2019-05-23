@@ -206,7 +206,7 @@ xgbCVwrapper <- function(X_train, Y_train, X_test, Y_test , ft_seqs,  weight_tra
           feval = match.fun(params[['eval_metric']]),
           maximize =  max_not_min,
           
-          early_stopping_rounds = ifelse(is.null(spec$early_stopping_rounds), round(1/params$"eta"), spec$early_stopping_rounds)  
+          early_stopping_rounds = ifelse(is.null(spec$early_stopping_rounds), round(2/params$"eta"), spec$early_stopping_rounds)  
         )
       }
       
