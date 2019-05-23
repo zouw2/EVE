@@ -183,7 +183,7 @@ xgbCVwrapper <- function(X_train, Y_train, X_test, Y_test , ft_seqs,  weight_tra
       cv1 <- xgboost::xgb.cv(
         params = paraList[[i]],
         data = dtrain,
-        nrounds = ifelse(!(is.null(spec$n_estimators)||is.na(spec$n_estimators)), spec$n_estimators, spec$"n_estimators"),
+        nrounds = ifelse(!(is.null(spec$n_estimators)||is.na(spec$n_estimators)), spec$n_estimators, 1000),
         folds = folds1, # so the cv split will be the same across the entire unit run
         prediction = F,
        # verbose = i ==1,
@@ -197,7 +197,7 @@ xgbCVwrapper <- function(X_train, Y_train, X_test, Y_test , ft_seqs,  weight_tra
         cv1 <- xgboost::xgb.cv(
           params = paraList[[i]][setdiff(names(paraList[[i]]),'eval_metric')],
           data = dtrain,
-          nrounds = ifelse(!(is.null(spec$n_estimators)||is.na(spec$n_estimators)), spec$n_estimators, spec$"n_estimators"),
+          nrounds = ifelse(!(is.null(spec$n_estimators)||is.na(spec$n_estimators)), spec$n_estimators, 1000),
           folds = folds1, # so the cv split will be the same across the entire unit run
           prediction = F,
           # verbose = i ==1,
