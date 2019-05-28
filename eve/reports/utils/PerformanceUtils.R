@@ -2,6 +2,14 @@ if( ! (R.version$major >= 3 && R.version$minor >= 5.1 )) {
   stop(paste('reporting needs R version >= 3.5.1'))
 }
 
+parseMajorMinor <- function(x){
+  r <- as.integer(strsplit(x, split='.', fixed=T)[[1]])
+  stopifnot(length(r) == 3)
+  stopifnot(!any(is.na(r)))
+  
+  return(c('major'=r[1], 'minor'=r[2],'patch'=r[3]))
+  }
+
 myScatter <- function(ds, x, y, noise=c(x=0,y=0), col.var='', corMethod='', pch.var='', nCol=4, a=1, lowCol='green', midCol='black', highCol='red', manualCol=c(),  main=''){
   stopifnot(is.data.frame(ds))
   
@@ -272,6 +280,16 @@ rmse <- function(pred, ref){
   return(rmse_final)
 }
 
+myCindex <- function(...){
+ v <- parseMajorMinor ( installed.packages()['randomForestSRC', 'Version'] )
+ stopifnot(v['major'] == 2)
+ if( v['minor'] >= 9 ) {
+   randomForestSRC::get.cindex(...)
+ }else{ # for certain earlier version of randomForestSRC
+   randomForestSRC::cindex(...)
+ }
+}
+
 
 #' Calculate hazard ratio using coxph and cindex using rfsrc::cindex
 #' @param df agrregated prevalidation dataframe from getResults function
@@ -283,9 +301,7 @@ coxHR <- function(df){
     mutate_at(vars(estimate, conf.low, conf.high), exp) %>% 
     rename(HR = estimate)
   
-  coxHR$cindex <- randomForestSRC::cindex(df$col_surv, 
-                                          df$col_event, 
-                                          df$pred*-1)
+  coxHR$cindex <- myCindex(df$col_surv, df$col_event, df$pred*-1)
   return(coxHR)
 }
 
