@@ -123,7 +123,7 @@ barplot(tail(sort(table(df.vimp$feature)), 20),
 ```
 
 ```{r, echo=FALSE}
-plotVIMP2.multiclass(df.vimp)
+plotVIMP2.multiclass(df.vimp, non_zero_value=1e-6)
 ```
 
 

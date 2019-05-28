@@ -101,7 +101,7 @@ df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, ignore_neg = T)
 df <- df.vimp
 ## plot
 df.vimp.plt$plt.dist.f
-df.vimp.plt$plt.fts.f
+df.vimp.plt$plt.features
 
 df.vimp.avg <- df.vimp.plt$df
 write_csv(df.vimp.avg, paste0(runSpec$outP, "/Analyzed_FeatureImportance_avg.csv"))

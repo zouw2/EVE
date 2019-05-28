@@ -101,7 +101,7 @@ df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 10)
 ## plot
 df.vimp.plt$plt.dist.f +
   ggtitle("Distribution of Feature Coefficient")
-df.vimp.plt$plt.fts.f +
+df.vimp.plt$plt.features +
   ggtitle("Top Features")
 ```
 
