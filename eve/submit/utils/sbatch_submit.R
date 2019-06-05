@@ -48,7 +48,7 @@ generate_cmd <- function(runSpec, curr_seed, cv, file_run, file_cmd){
 #' functions for submitting jobs
 #' @param runSpec list, user inputs
 
-sbatch_submit <- function(runSpec){
+sbatch_submit <- function(runSpec, maxJob=1200){
   
   engine_path <- "~/EVE/eve/models/"
   #engineFile <- paste0(engine_path, runSpec$engine)
@@ -102,6 +102,13 @@ sbatch_submit <- function(runSpec){
     if(grepl('rds$', tolower(runSpec$training_data))) df <- readRDS(paste(runSpec$project_home, runSpec$training_data, sep='/'))
     
     runSpec$num_CV <- nrow(df)
+  }
+  
+  if(maxJob > 0){
+    nJ <- ifelse( runSpec$split_CVs, runSpec$num_CV, 1) * runSpec$num_seeds
+    if( nJ > maxJob ){
+      stop(paste('you are submitting', nJ, 'jobs to the cluster, which is unusual, given that maximal total job is set to', maxJob,'. If you are sure that you want to do this, please call sbatch_submit with an argument of "maxJob =', nJ,'"'))
+    }
   }
   
   ## check for specification of nCv4lambda, the number of CV for nested CV
