@@ -122,6 +122,8 @@ barplot(tail(sort(table(df.vimp$feature)), 20),
         horiz =T, las=2, main='most used features')
 ```
 
+For regularized multinomial regression, glmnet does not use a reference level from the outcome variable and provides coefficients for each level of multinomial distribution. Please check out section __Regularized multinomial regression__ section from [here](https://www.jstatsoft.org/article/view/v033i01/v33i01.pdf). The following barplots show the coefficients for each level.
+
 ```{r, echo=FALSE}
 plotVIMP2.multiclass(df.vimp, non_zero_value=1e-6)
 ```
