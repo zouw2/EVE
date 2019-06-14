@@ -12,9 +12,9 @@
 ```console
 ssh rescomp3.gene.com
 cd ~
-git clone https://github.roche.com/ED-EB/EVE.git
+git clone --branch dev-models https://github.roche.com/ED-EB/EVE.git
 ```
-_current setup assumes users always clone this repo to your unix HOME_
+_current setup assumes users always clone this repo to your unix HOME_. The branch dev-models contains the latest update.
 
 
 ### Install Required Packages
