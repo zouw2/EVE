@@ -102,28 +102,29 @@ plt$overall +
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 main <- paste('distribution across', length(unique(df.vimp$seed)), 'seed x', length(unique(df.vimp$cv)),'CV')
 xlab <- paste('# of times a feature is selected by lasso (alpha=', runSpec$alpha,')')
-hist(table(df.vimp$feature), main = main , xlab = xlab)
+if(nrow(df.vimp)) hist(table(df.vimp$feature), main = main , xlab = xlab)
 ```
-
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
-with(as.data.frame(df.vimp), hist(table(paste(cv, seed)), 
-                                  xlab = 'number of retained features in one run', 
-                                  main=paste('summary of model size across', length(unique(paste(cv, seed))),'runs')))
-```
+ 
 
 ```{r, fig.height=6, echo=FALSE}
 par(mar=c(5,20,4,2))
-top_f <- tail(sort(table(df.vimp$feature)), 20)
-barplot(top_f, 
-        horiz =T, las=2, main='Number of times a feature is used')
 
-c1 <-  countUniqueFeatures(df.vimp)
+if(nrow(df.vimp)) {
+  top_f <- tail(sort(table(df.vimp$feature)), 20)
+  barplot(top_f, 
+          horiz =T, las=2, main='Number of times a feature is used')
+  cat('(currently only Lasso has this graph)')
 
-print(paste('summary of numer of features used in', nrow(c1),'seeds and', ncol(c1),'CVs'))
-summary(as.vector(c1))
+  c1 <-  countUniqueFeatures(df.vimp)
+
+  print(paste('summary of numer of features used in', nrow(c1),'seeds and', ncol(c1),'CVs'))
+  summary(as.vector(c1))
+}else{
+  cat('no feature is retained in any CV')
+}
 
 ```
-(currently only Lasso has this graph)
+
 
 
 ```{r, echo=FALSE}
@@ -131,13 +132,15 @@ summary(as.vector(c1))
 #df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 20)
 
 #or alternatively, top features based on frequency of being included in the model
-df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, ft_name = names(top_f) )
+if(nrow(df.vimp)) {
+  df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, ft_name = names(top_f) )
 
-## plot
-df.vimp.plt$plt.dist.f +
-  ggtitle("Distribution of Feature Coefficient")
-df.vimp.plt$plt.features +
-  ggtitle("Top Features")
+  ## plot
+  df.vimp.plt$plt.dist.f +
+    ggtitle("Distribution of Feature Coefficient")
+  df.vimp.plt$plt.features +
+    ggtitle("Top Features")
+}
 ```
 
 
