@@ -96,7 +96,7 @@ write_csv(df.vimp.avg, paste0(runSpec$outP, "/Analyzed_FeatureImportance_avg.csv
 plotVIMP_scatter(df.vimp, top_n = 20, ft_num = 20)
 ```
 
-```{r, fig.width=8, echo=FALSE}
+```{r, fig.width=8, echo=FALSE, eval=FALSE}
 library(pheatmap)
 plotHeatmap(df.vimp.plt$df, df.orig)
 ```

@@ -105,7 +105,7 @@ df.vimp.plt$plt.features +
   ggtitle("Top Features")
 ```
 
-```{r, fig.width=8, echo=FALSE}
+```{r, fig.width=8, echo=FALSE, eval=FALSE}
 library(pheatmap)
 plotHeatmap(df.vimp.plt$df, df.orig)
 ```
