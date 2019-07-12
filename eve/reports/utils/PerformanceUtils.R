@@ -193,12 +193,12 @@ getResults <- function(project_home, project_name, type, objName = NULL, require
   seed.num <- as.numeric(unname(seed.num))
   
   if(type == "rdata"){
-    df <- data_frame(seed = seed.num) %>% 
+    df <- tibble(seed = seed.num) %>%
       mutate(df = map(files,
                       ~ read_rdata(file.path(Path2Results, .), objName))) %>% 
       unnest() 
   } else {
-    df <- data_frame(seed = seed.num) %>% 
+    df <- tibble(seed = seed.num) %>%
       mutate(df = map(files,
 #                      ~ read_csv(file.path(Path2Results, .)))) %>%
                        ~ data.table::fread(file = file.path(Path2Results, .), stringsAsFactors = F, header=T ))) %>% 
