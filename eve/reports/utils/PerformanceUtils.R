@@ -657,6 +657,10 @@ plotCalibration <- function(df, ft_num = NULL, cuts = 10){
 plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
                       bins=50, ignore_neg=FALSE, non_zero_value=NA){
   stopifnot(top_n_by %in% c("size", "freq"))
+  if(nrow(df) == 0) {
+    cat('no feature retained')
+    return(NULL)
+  }
 
   if(is.null(ft_num)){
     ft_num <- max(df$size)

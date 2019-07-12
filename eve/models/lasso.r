@@ -173,15 +173,17 @@ for (cv.idx in cvList){
                                lambdaSum = match.fun(runSpec$lambdaSum), runPairs=runSpec$runPairs,
                                lambdaChoice = runSpec$lambdaChoice, 
                                w = runSpec$weight.value[-cv.idx])
-    
-    df_vimp_tmp <- data.frame("feature" = df.out$features,
-                              "lambda" = df.out$lambda,
-                              "cv" = cv_id)
+    if(nrow(df.out$features) > 0){
+      df_vimp_tmp <- data.frame("feature" = df.out$features,
+                                "lambda" = df.out$lambda,
+                                "cv" = cv_id)
+      df_vimp <- rbind(df_vimp, df_vimp_tmp)
+    }
     df_pred_tmp <- df.out$pred
     df_pred_tmp["cv"] <- cv_id
     df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test) ## add sample ID here
     
-    df_vimp <- rbind(df_vimp, df_vimp_tmp)
+    
     df_pred <- rbind(df_pred, df_pred_tmp)
     
   } else {
@@ -205,15 +207,21 @@ for (cv.idx in cvList){
                                  lambdaChoice = runSpec$lambdaChoice, 
                                  w = runSpec$weight.value[-cv.idx])
       
-      df_vimp_tmp <- data.frame( df.out$features,
+      if(nrow(df.out$features) > 0){
+        df_vimp_tmp <- data.frame( df.out$features,
                                 "lambda" = df.out$lambda,
                                 "cv" = cv_id)
+        df_vimp <- rbind(df_vimp, df_vimp_tmp)
+      }else{
+        cat('no feature retained for split', cv_id,'under local seed', specLocal$seed)
+      }
+      
       df_pred_tmp <- df.out$pred
       df_pred_tmp["cv"] <- cv_id
   #    df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test) ## add sample ID here
       df_pred_tmp[[runSpec$sample_ID]] <- rownames(df_pred_tmp)
       rownames(df_pred_tmp) <- NULL
-      df_vimp <- rbind(df_vimp, df_vimp_tmp)
+      
       df_pred <- rbind(df_pred, df_pred_tmp)
     }
   }
@@ -224,7 +232,7 @@ for (cv.idx in cvList){
 ## note: plotting performance against # of feature retained is not meaningful for lasso.
 ## note: size for lasso is just the total # of features in the input matrix
 
-df_vimp$size <- dim(x)[2]
+if(nrow(df_vimp) > 0) df_vimp$size <- dim(x)[2]
 df_pred$size <- dim(x)[2]
 
 stopifnot(!any(duplicated(df_pred$sample_ID)))

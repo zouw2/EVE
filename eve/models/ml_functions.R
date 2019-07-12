@@ -600,7 +600,7 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
   if(nrow(features) > 0) {
     features <- data.frame(row.names(features), features, row.names = NULL, stringsAsFactors = F)
   }else{
-    features <- data.frame(matrix(rep(NA, ncol(features) + 1), nrow=1))
+    features <- data.frame(matrix( NA, ncol = ncol(features) + 1, nrow=0))
   }
 
   colnames(features) <- c('feature', featureCol)  
