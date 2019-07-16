@@ -47,7 +47,9 @@ outF <- paste0(runSpec$outP, "/rfsrc_rdata_", runSpec$surv_col, "_seed", seed, "
 #########################
 ## read & process data ##
 #########################
-df <- read.csv(paste(runSpec$project_home, runSpec$training_data, sep='/') )
+if(grepl('csv$', tolower(runSpec$training_data))) df <- read.csv(paste(runSpec$project_home, runSpec$training_data, sep='/') )
+
+if(grepl('rds$', tolower(runSpec$training_data))) df <- as.data.frame(readRDS(paste(runSpec$project_home, runSpec$training_data, sep='/')))
 
 if(is.na(runSpec$sample_ID)|is.null(runSpec$sample_ID)|(runSpec$sample_ID=="")){
   print("Use index as sample ID")
