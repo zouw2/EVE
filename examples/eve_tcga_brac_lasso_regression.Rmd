@@ -115,7 +115,7 @@ if(nrow(df.vimp)) {
 
 #or alternatively, top features based on frequency of being included in the model
 if(nrow(df.vimp)) {
-df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, ft_name = names(top_f) )
+df.vimp.plt <- plotVIMP2(df.vimp, bin = 100  )
 
 ## plot
 df.vimp.plt$plt.dist.f +
