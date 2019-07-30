@@ -310,6 +310,8 @@ xgbCVwrapper <- function(X_train, Y_train, X_test, Y_test , ft_seqs,  weight_tra
 
 stratFold <- function( outcome, fam, num_CV){
   if (fam %in% 'cox') {
+    if( all( c('time','status') == colnames(outcome) ) ) colnames(outcome) <- c('col_surv', 'col_event')
+    
     stopifnot(all(c('col_surv', 'col_event') %in% colnames(outcome)))
     
     return(  caret::createFolds(outcome[, "col_surv"] * (as.integer(outcome[, "col_event"]) - 0.5), 
@@ -317,7 +319,7 @@ stratFold <- function( outcome, fam, num_CV){
                                  list = TRUE, returnTrain = FALSE) )
   }
   
-  stopifnot(is.vector(outcome))
+  stopifnot(is.vector(outcome) || is.factor(outcome))
   
   if (fam %in% c("multinomial", "binomial")) {
     cvList <- caret::createFolds(as.factor(outcome), 
@@ -414,6 +416,97 @@ extractBeta <- function(gObj, lambda){
 }
 
 
+
+
+tuneLassoParam <- function (n, lsum, nfolds, x , y , fam, alpha , weights , ... ){
+  # create folder id
+  fold2  <- lapply(1:n, function(j){
+    f1 <- stratFold(y, fam, nfolds)
+    stopifnot(!any(duplicated(unlist(f1))))
+    
+    r1 <- rep(NA, length(unlist(f1)))
+    for (i in 1:length(f1)) r1[f1[[i]]] <- i
+    stopifnot(!any(is.na(r1)))
+    stopifnot(all(sort(unique(r1)) == 1:nfolds))
+    r1
+  })
+  
+  if(fam == 'cox') y <- Surv(y)
+  
+  res <- lapply(alpha, function(a){
+    
+    r2 <- t(sapply(1:n, function(i) { 
+      
+      cv1 <- cv.glmnet(x=x, y=y, family = fam, foldid = fold2[[i]], alpha=a,  standardize =T, weights=weights, ...)
+      
+      return(c(alpha= a, lambda.min=cv1$lambda.min, lambda.1se = cv1$lambda.1se, cvm.min=min(cv1$cvm)))
+      } )) } )
+
+  } 
+  
+   
+
+
+
+
+tuneLassoParam_averageCVM <- function (n, lsum, nfolds, x , y , fam, alpha , weights , ... ){
+  # this approach to average cvm and find the (alpha, lambda) pair that minimized the averaged cvm does not work because the lambda sequences seem to different sometime even if I provided the lambda seqeunces and seed
+  
+  fold2  <- lapply(1:n, function(j){
+    f1 <- stratFold(y, fam, nfolds)
+    stopifnot(!any(duplicated(unlist(f1))))
+    
+    r1 <- rep(NA, length(unlist(f1)))
+    for (i in 1:length(f1)) r1[f1[[i]]] <- i
+    stopifnot(!any(is.na(r1)))
+    stopifnot(all(sort(unique(r1)) == 1:nfolds))
+    r1
+    })
+  
+  if(fam == 'cox') y <- Surv(y)
+  
+  res <- lapply(alpha, function(a){
+    
+    r1 <- cv.glmnet(x=x, y=y, family = fam, foldid = fold2[[1]], alpha=a, standardize =T, weights=weights, ...)
+    lseq <- r1$lambda #the labmda sequence is different for different alpha
+    
+    r2 <- lapply(2:n, function(i) { 
+      set.seed(29517)
+      cv.glmnet(x=x, y=y, family = fam, foldid = fold2[[i]], alpha=a, lambda=lseq, standardize =T, weights=weights, ...) } )
+    
+    s1 <- sapply(1:length(r2), function(i){ stopifnot( all( lseq == r2[[i]]$lambda ) )})
+    
+    r2[[length(r2)+1]] <- r1
+    
+    r2cvm <- t(sapply(r2, function(x) x$cvm)) # expecting a matrix (more than 1 alpha) with rows for different alpha and columns for different lambda
+    
+    
+    stopifnot(nrow(r2cvm) == n)
+    stopifnot(ncol(r2cvm) == length(lseq))
+    
+    return(list(lambda = lseq, cvm = apply(r2cvm, 2, lsum)))
+    
+  })
+  
+  if(length(alpha) == 1){
+    stopifnot(length(res) == 1)
+    with(res[[1]], stopifnot(is.numeric(cvm)))
+    with(res[[1]], stopifnot(is.numeric(lambda)))
+    return(list(lambda=with(res[[1]], lambda[which.min(cvm)]), alpha=alpha))
+  }
+  
+  lm <- do.call(rbind, lapply(res, function(x) x$lambda))
+  cvm <- do.call(rbind, lapply(res, function(x) x$cvm))
+  print('initial error metrics')
+  print(cvm[, 1:4])
+  
+  stopifnot(all(dim(lm) == dim(cvm)))
+  stopifnot(nrow(cvm) == length(alpha))
+  stopifnot(ncol(cvm) == length(res[[1]]$lambda))
+  best <- arrayInd(which.min(cvm), dim(cvm))
+  return( list( lambda = lm[best[1], best[2]], alpha = alpha[best[1]]))
+}
+
 glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
                              seed = 27519, 
                              glmnetFam="binomial", a1=1, 
@@ -469,7 +562,7 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     }
   }
   
-  print(paste('alpha=', a1))
+  print(paste('alpha=', a1, collapse = ','))
   
   print('dim of training x')
   print(dim(X_train))
@@ -478,21 +571,39 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
   
   x1 <- X_train[, f]
 
-  maxL <- lambdaSum( sapply(1:nCv4lambda, function(i) {
-    set.seed(seed +100 + i)
+  if(F){ # the previous way of only tuning lambda
+    maxL <- lambdaSum( sapply(1:nCv4lambda, function(i) {
+      set.seed(seed +100 + i)
+      
+      r1 <- cv.glmnet(x=x1, y=(function(yobj){
+        if(glmnetFam =='cox') return(Surv(yobj)); 
+        return(yobj) })(Y_train), family=glmnetFam, alpha = a1 , standardize =T, weights=w, ...)
+      
+      r1[[lambdaChoice]]
+      
+    }) , na.rm = T)
+  }else{
+  
+    set.seed(seed + 101 )
+    tuneResults <- tuneLassoParam(n=nCv4lambda, lsum =lambdaSum, nfolds=10, x=x1, y= Y_train, fam=glmnetFam, alpha=a1, weights=w, ... )
     
-    r1 <- cv.glmnet(x=x1, y=(function(yobj){
-      if(glmnetFam =='cox') return(Surv(yobj)); 
-      return(yobj) })(Y_train), family=glmnetFam, alpha = a1 , standardize =T, weights=w, ...)
+    tuneSummary <- t( sapply(tuneResults, function(x) {
+        stopifnot(length(unique(x[, 'alpha'])) == 1)
+      return(c(alpha = unname(x[1, 'alpha']), lambda=lambdaSum(x[, lambdaChoice]), cvm.min= mean(x[, 'cvm.min'])))
+      }))
     
-    r1[[lambdaChoice]]
+    print('tuning summary')
+    print(tuneSummary)
     
-  }) , na.rm = T)
-
+    sel <- which.min(tuneSummary[,'cvm.min'])
+    maxL <- tuneSummary[sel,'lambda']
+    a2 <-   tuneSummary[sel,'alpha']
+  }
+  
   
   g1 <- glmnet(x=x1, y = (function(yobj){
     if(glmnetFam =='cox') return(Surv(yobj)); 
-    return(yobj) })(Y_train),  family = glmnetFam, alpha = a1,  standardize =T, weights=w, ...)
+    return(yobj) })(Y_train),  family = glmnetFam, alpha = a2,  standardize =T, weights=w, ...)
 
 # features from g1
   features <- extractBeta(g1, lambda=maxL) 
@@ -503,6 +614,7 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
   subsetFeatures <- c()
   if(length(runPairs) > 0){
     stopifnot(glmnetFam %in% "multinomial")
+    if(length(a1) > 1) stop('alpha tuning has not been implemented for runPairs function')
     
     pairwiseFeatures <-  lapply(runPairs, function(g){
       g <- unique(g)
@@ -609,7 +721,7 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
 #  if(nrow(features)==0){ features <- NA}
   
   list(features = features, 
-       lambda = maxL, 
+       lambda = maxL, alpha = ifelse(length(a1)==1, a1, a2),
        pred = pred.out) 
 }
 

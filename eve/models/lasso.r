@@ -209,7 +209,7 @@ for (cv.idx in cvList){
       
       if(nrow(df.out$features) > 0){
         df_vimp_tmp <- data.frame( df.out$features,
-                                "lambda" = df.out$lambda,
+                                "lambda" = df.out$lambda, 'alpha' =  df.out$alpha,
                                 "cv" = cv_id)
         df_vimp <- rbind(df_vimp, df_vimp_tmp)
       }else{
