@@ -724,10 +724,11 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
   } else if (top_n_by == "size") {
     df.top.f <- df.top.f %>% 
       arrange(desc(vimp.avg.abs)) %>%
-      slice(1:top_n) 
+      slice(1:top_n) %>%
+      arrange(desc(vimp.avg.abs), desc(n))
   } else if (top_n_by == "freq") {
       df.top.f <- subset(df.top.f, feature %in% top_features_by_freq) %>%
-        arrange(desc(n))
+        arrange(desc(n), desc(vimp.avg.abs))
   }
 
   ## PLOT 1 of 2
