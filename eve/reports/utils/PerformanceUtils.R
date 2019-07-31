@@ -757,23 +757,18 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
   ## for plotting, order features according to data frame order (as arrange()'d
   ## above)
   df.top.f.ggplot <- df.top.f %>%
-      mutate(feature = factor(feature, levels=feature))
-
-  if (top_n_by == "size") {
+      mutate(feature = factor(feature, levels=feature)) %>%
       ## reverse factor order to match with coord_flip() below
       ## https://stackoverflow.com/q/34227967/3217870
-      plt.features.base <- ggplot(df.top.f.ggplot,
-                                  aes(x=forcats::fct_rev(feature),
-                                      y=vimp.avg)) +
+      mutate(feature = forcats::fct_rev(feature))
+
+  if (top_n_by == "size") {
+      plt.features.base <- ggplot(df.top.f.ggplot, aes(x=feature, y=vimp.avg)) +
           ggtitle(paste("Feature importance by",
                         ifelse(ignore_neg,'','absolute')," VIMP magnitude"))
   }
   else {
-      ## reverse factor order to match with coord_flip() below
-      ## https://stackoverflow.com/q/34227967/3217870
-      plt.features.base <- ggplot(df.top.f.ggplot,
-                                  aes(x=forcats::fct_rev(feature),
-                                      y=vimp.avg)) +
+      plt.features.base <- ggplot(df.top.f.ggplot, aes(x=feature, y=vimp.avg)) +
           ggtitle("Feature importance by usage frequency")
   }
 
