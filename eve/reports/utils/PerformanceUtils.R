@@ -706,6 +706,15 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
 
   assertthat::assert_that(nrow(df.feature.freq) == nrow(df.vimp.scores))
 
+  number_of_frequencies <- df.feature.freq %>%
+      pull(n) %>% unique() %>% length()
+
+  ## this applies in ridge models
+  if (number_of_frequencies == 1) {
+      message("NOTE: All features have same frequency. Using top_n_by=size")
+      top_n_by = "size"
+  }
+
   ## for subsetting, extract top features into a vector
   top_features_by_freq <- df.feature.freq %>%
       slice(1:top_n) %>%
@@ -725,9 +734,11 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
     df.top.f <- df.top.f %>% 
       arrange(desc(vimp.avg.abs)) %>%
       slice(1:top_n) %>%
+      ## arrange for plotting below
       arrange(desc(vimp.avg.abs), desc(n))
   } else if (top_n_by == "freq") {
       df.top.f <- subset(df.top.f, feature %in% top_features_by_freq) %>%
+        ## arrange for plotting below
         arrange(desc(n), desc(vimp.avg.abs))
   }
 
@@ -743,16 +754,26 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
   ## extract options for plot annotation
   RANGE <- diff(range(df.top.f$vimp.avg, finite = TRUE))
   YMIN <- min(df.top.f$vimp.avg) - RANGE/2
+  ## for plotting, order features according to data frame order (as arrange()'d
+  ## above)
+  df.top.f.ggplot <- df.top.f %>%
+      mutate(feature = factor(feature, levels=feature))
 
   if (top_n_by == "size") {
-      plt.features.base <- ggplot(df.top.f, aes(x=stats::reorder(feature, vimp.avg.abs),
-                                                y=vimp.avg)) +
+      ## reverse factor order to match with coord_flip() below
+      ## https://stackoverflow.com/q/34227967/3217870
+      plt.features.base <- ggplot(df.top.f.ggplot,
+                                  aes(x=forcats::fct_rev(feature),
+                                      y=vimp.avg)) +
           ggtitle(paste("Feature importance by",
                         ifelse(ignore_neg,'','absolute')," VIMP magnitude"))
   }
   else {
-      plt.features.base <- ggplot(df.top.f, aes(x=stats::reorder(feature, n),
-                                                y=vimp.avg)) +
+      ## reverse factor order to match with coord_flip() below
+      ## https://stackoverflow.com/q/34227967/3217870
+      plt.features.base <- ggplot(df.top.f.ggplot,
+                                  aes(x=forcats::fct_rev(feature),
+                                      y=vimp.avg)) +
           ggtitle("Feature importance by usage frequency")
   }
 
@@ -761,6 +782,7 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
       geom_errorbar(aes(ymin=lower, ymax=upper), width=0.4, alpha=1) +
       geom_text(aes(y = YMIN, label=n)) +
       labs(x="Feature", y="Importance (95% CI)") +
+      ## this flips the order, so using forcats::fct_rev() above
       coord_flip() +
       theme_bw()
       
@@ -768,7 +790,8 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
               plt.dist.f = plt.dist.f,
               plt.features = plt.features
               ))
-}
+  }
+  
 
 #' This is to visualize Lasso's multi-class prediciton VIMP
 #' Because it outputs vimp for each class, we have to loop through each class
