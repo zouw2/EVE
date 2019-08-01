@@ -699,8 +699,6 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
   df.feature.freq <- df %>%
       ## add column `n` with counts
       count(feature) %>%
-      ## also arrange by size (eg, ridge regression where all coefficients will
-      ##have same freq, see #38
       arrange(desc(n)) %>%
       ## also derive rank if preferred for plots
       ## nrow(df.vimp.scores) == number of features
