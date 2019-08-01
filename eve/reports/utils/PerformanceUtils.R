@@ -699,6 +699,8 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
   df.feature.freq <- df %>%
       ## add column `n` with counts
       count(feature) %>%
+      ## also arrange by size (eg, ridge regression where all coefficients will
+      ##have same freq, see #38
       arrange(desc(n)) %>%
       ## also derive rank if preferred for plots
       ## nrow(df.vimp.scores) == number of features
@@ -706,24 +708,10 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
 
   assertthat::assert_that(nrow(df.feature.freq) == nrow(df.vimp.scores))
 
-  number_of_frequencies <- df.feature.freq %>%
-      pull(n) %>% unique() %>% length()
-
-  ## this applies in ridge models
-  if (number_of_frequencies == 1) {
-      message("NOTE: All features have same frequency. Using top_n_by=size")
-      top_n_by = "size"
-  }
-
-  ## for subsetting, extract top features into a vector
-  top_features_by_freq <- df.feature.freq %>%
-      slice(1:top_n) %>%
-      pull(feature)
-
   ## User can provide which features they want in `ft_name`. Otherwise, take
   ## `top_n` features according to `top_n_by`
   df.top.f <- df.vimp.scores %>% 
-      ## add rank info for some plots
+      ## add rank info for top_n filtering and plotting
       left_join(
           df.feature.freq %>% select(feature, n, rank),
           by="feature")
@@ -732,14 +720,14 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
     df.top.f <- subset(df.top.f, feature %in% ft_name )
   } else if (top_n_by == "size") {
     df.top.f <- df.top.f %>% 
-      arrange(desc(vimp.avg.abs)) %>%
-      slice(1:top_n) %>%
-      ## arrange for plotting below
-      arrange(desc(vimp.avg.abs), desc(n))
+      # also arrange by most frequent if tied
+      arrange(desc(vimp.avg.abs), desc(n)) %>%
+      slice(1:top_n) 
   } else if (top_n_by == "freq") {
-      df.top.f <- subset(df.top.f, feature %in% top_features_by_freq) %>%
-        ## arrange for plotting below
-        arrange(desc(n), desc(vimp.avg.abs))
+      df.top.f <- df.top.f %>%
+          ## for ridge, all freq's are the same, so also arrange by size
+          arrange(desc(n), desc(vimp.avg.abs)) %>%
+          slice(1:top_n)
   }
 
   ## PLOT 1 of 2
