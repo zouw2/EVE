@@ -113,7 +113,7 @@ x <- data.matrix( df[,!(colnames(df) %in% col2drop)] )
 ## handle input features ##
 ###########################
 
-
+## TODO placeholder. to implement later
 featureList <- NULL
 if(is.null(featureList)){
   featureList <- colnames(x)
