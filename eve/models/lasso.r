@@ -91,7 +91,7 @@ if(any(is.na(as.vector(y)))){
 }
 
 col2drop <- c(runSpec$label_name, runSpec$sample_ID,
-              runSpec$surv_col,   runSpec$event_col, runSpec$weight_col)
+              runSpec$surv_col,   runSpec$event_col, runSpec$weight_col, runSpec$variable2ignore)
 
 x <- data.matrix( df[,!(colnames(df) %in% col2drop)] ) ## why data.matrix not data.frame
 
