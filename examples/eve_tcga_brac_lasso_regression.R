@@ -27,7 +27,8 @@ runSpec <- list(
   alpha = 1,                 # use 0.5 for elastic net, or 0 for ridge
   nCv4lambda = 10,           # the number of repeated CV to get optimized lambda
   lambdaSum='mean', # after getting nCv4lambda number of lambda, how to summarize them
-  lambdaChoice = 'lambda.min' # or lambda.1se, 2 options from cv.glmnet
+  lambdaChoice = 'lambda.min', # or lambda.1se, 2 options from cv.glmnet
+  variable2ignore =c()
 )
 ########################################
 ### Input Data Processing (optional) ###
