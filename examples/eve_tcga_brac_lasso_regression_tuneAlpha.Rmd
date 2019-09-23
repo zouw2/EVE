@@ -1,0 +1,137 @@
+---
+title: "Evaluate testing data (regression) - Lasso"
+author: "EVE W."
+date: '`r Sys.Date()`'
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+ 
+
+```{r}
+## user input
+project_home <- "~/EVE/examples"
+project_name <- "lasso_regression2"
+```
+
+## 0. Load Data
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(broom)
+library(caret)
+library(pROC)
+source("~/EVE/eve/reports/utils/PerformanceUtils.R")
+load(paste0(project_home,"/log/", project_name, "/metainfo.Rdata"))
+
+
+
+if(grepl("\\.r$|\\.R$", runSpec$engine)){
+  df.preval <- getResults(project_home, project_name, "rdata", objName = "df_pred")
+  df.vimp   <- getResults(project_home, project_name, "rdata", objName = "df_vimp")
+} else {
+  df.preval <- getResults(project_home, project_name, "prevalidation")
+  df.vimp   <- getResults(project_home, project_name, "vimp")
+}
+
+## get original data info
+df.orig <- read_csv(paste(project_home, runSpec$training_data, sep="/"))
+
+tot.sample <- dim(df.orig)[1]
+tot.feature <- max(df.preval$size)
+num.cv <- length(unique(df.preval$cv))
+num.seed <- length(unique(df.preval$seed))
+
+cat(tot.sample, "of samples were used \n")
+cat(tot.feature, "of full features\n")
+cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
+
+# if you think there are some unit run output is missing, use the following to figure out which ones are missing; then you can check out their log output to see whether there are specific errors
+
+# you may need adjust posSeed or posSplit value
+# Given a outcome name like 'glmnet_rdata_phenotype_seed1001_cv1.rdata', and the function splitting the output name by '_', the index of seed value is 4, and that of cv split is 5. So there are posSeed=4, posSplit = 5 below.
+#checkOutput(path = with(runSpec, paste(project_home,'results', project_name, sep='/')), pattern = paste( '\\.rdata', sep=''), posSeed=4, posSplit = 5 )
+
+
+cat(runSpec$label_name, ":\n")
+summary(df.orig[[runSpec$label_name]])
+
+
+
+```
+run with `r runSpec$engine`.
+
+## 1. Scores
+
+```{r, fig.width=6, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+plt <- plotRMSE(df.preval, label_name = runSpec$label_name)
+plt$overall +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+'Pred' compares the actual CV prediction with observed value. 'Rand' compares permuted CV prediction with observed to mimic random prediction.
+
+### correlation
+
+```{r, echo=FALSE}
+correlation(df.preval)
+```
+
+
+## 2. Important Features
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+main <- paste('distribution across', length(unique(df.vimp$seed)), 'seed x', length(unique(df.vimp$cv)),'CV')
+xlab <- paste('# of times a feature is selected by lasso ')
+if(nrow(df.vimp))  hist(table(df.vimp$feature), main = main , xlab = xlab)
+```
+
+```{r, fig.height=6, echo=FALSE}
+par(mar=c(5,20,4,2))
+
+if(nrow(df.vimp)) {
+  barplot(tail(sort(table(df.vimp$feature)), 20), 
+          horiz =T, las=2, main='Number of times a feature is used')
+  cat('(currently only Lasso has this graph)')
+
+  c1 <-  countUniqueFeatures(df.vimp)
+
+  print(paste('summary of number of features used in each run under', nrow(c1),'seeds and', ncol(c1),'CVs'))
+  summary(as.vector(c1))
+}else{
+  cat('no feature is retained in any CV')
+}
+
+```
+
+
+
+```{r, echo=FALSE}
+
+# top features based on average coefficients
+#df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 20)
+
+#or alternatively, top features based on frequency of being included in the model
+if(nrow(df.vimp)) {
+df.vimp.plt <- plotVIMP2(df.vimp, bin = 100  )
+
+## plot
+df.vimp.plt$plt.dist.f +
+  ggtitle("Distribution of Feature Coefficient")
+df.vimp.plt$plt.features +
+  ggtitle("Top Features")
+}
+```
+
+```{r, fig.width=8, echo=FALSE}
+library(pheatmap)
+plotHeatmap(df.vimp.plt$df, df.orig)
+```
+
+```{r alpha selection, echo=F}
+
+knitr::kable( unique(df.vimp[, c('seed', 'alpha','lambda','cv')]), row.names =F, caption ='parameter selection')
+
+```
