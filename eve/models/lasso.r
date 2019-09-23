@@ -174,9 +174,11 @@ for (cv.idx in cvList){
                                lambdaChoice = runSpec$lambdaChoice, 
                                w = runSpec$weight.value[-cv.idx])
     if(nrow(df.out$features) > 0){
-      df_vimp_tmp <- data.frame("feature" = df.out$features,
-                                "lambda" = df.out$lambda,
-                                "cv" = cv_id)
+      df_vimp_tmp <- data.frame( df.out$features,
+                                "lambda" = unname(df.out$lambda),'alpha' =  df.out$alpha,
+                                "cv" = cv_id, stringsAsFactors = F)
+      colnames(df_vimp_tmp) <- c("feature", 'vimp', "lambda", 'alpha','cv')
+      
       df_vimp <- rbind(df_vimp, df_vimp_tmp)
     }
     df_pred_tmp <- df.out$pred
@@ -210,7 +212,7 @@ for (cv.idx in cvList){
       if(nrow(df.out$features) > 0){
         df_vimp_tmp <- data.frame( df.out$features,
                                 "lambda" = df.out$lambda, 'alpha' =  df.out$alpha,
-                                "cv" = cv_id)
+                                "cv" = cv_id, stringsAsFactors = F)
         df_vimp <- rbind(df_vimp, df_vimp_tmp)
       }else{
         cat('no feature retained for split', cv_id,'under local seed', specLocal$seed)
