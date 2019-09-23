@@ -97,8 +97,7 @@ ggsurvplot(fit1, data = df.in, pval = TRUE)
 ## 2. Important Features
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
-df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, ignore_neg = T)
-df <- df.vimp
+df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, ignore_neg = T, top_n_by="size")
 ## plot
 df.vimp.plt$plt.dist.f
 df.vimp.plt$plt.features

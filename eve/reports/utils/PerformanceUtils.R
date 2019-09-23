@@ -665,6 +665,16 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
   if(is.null(ft_num)){
     ft_num <- max(df$size)
   }
+
+  # only focus on selected size
+  # also needed for `rank` calculations below
+  # otherwise, get error like:
+  # Error: Column `rank` must be length 15806 (the number of rows) or one, not 15801
+  # > traceback()
+  # 2: df %>% count(feature) %>% arrange(desc(n)) %>% mutate(rank = 1:nrow(df.vimp.scores)) at PerformanceUtils.R#699
+  # 1: plotVIMP2(df.vimp, bin = 100, ignore_neg = T, ft_num = ft_num)
+  df <- df %>%
+    filter(size == ft_num)
   
   if(! (missing(non_zero_value) || is.null(non_zero_value) ||
         is.na(non_zero_value) || non_zero_value <= 0)){
