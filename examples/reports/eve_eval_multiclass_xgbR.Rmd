@@ -194,6 +194,8 @@ ggplot(data=grid_best, aes(x=n_estimators, group=size, col=factor(size))) + geom
 
 ```{r find the best parameter, echo=T, fig.width=4, fig.height=4}
 
+#for a particular program, the best feature step (select_ft_step) may be not 100, the best max_depth may be not 1 and the best max_delta_step may be not 0. This section need be finalized after reviewing the results above and decide the best tuning parameter combinations.
+
 select_ft_step <- 100
 
 df1 <- subset(grid_best, size==select_ft_step & max_depth==1 &  max_delta_step == 0 )
