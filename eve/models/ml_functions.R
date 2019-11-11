@@ -746,6 +746,12 @@ rfeSRCCv3 <- function(X_train, Y_train, X_test, Y_test, sizes, seed,
                                  seed = seed, ...) ## use mc.cores = 1 when running rfsrc in rstudio in rescomp
     
     importance <- r1$importance
+    
+    missed_feature <- setdiff( currfl, names(importance))
+    if(length(missed_feature) > 0) {
+      print(paste('there are', length(missed_feature), 'included in the input X matrix but excluded from importance vecor, for example:', paste(head(missed_feature, 10), collapse = ',')))
+    }
+    
     stopifnot(all(sort(names(importance)) == sort(currfl)))
     importance <- sort(importance)
     fl <-  names(importance) ## sorted feature list
