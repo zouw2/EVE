@@ -133,13 +133,13 @@ if(nrow(df.vimp)) {
 
 #or alternatively, top features based on frequency of being included in the model
 if(nrow(df.vimp)) {
-  df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 10, top_n_by='size')
+  df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 20)
 
   ## plot
   df.vimp.plt$plt.dist.f +
     ggtitle("Distribution of Feature Coefficient")
   df.vimp.plt$plt.features +
-    ggtitle("Top Features")
+    ggtitle("Top Features")+ ylab("Feature Coefficient (95% CI)")
 }
 ```
 
