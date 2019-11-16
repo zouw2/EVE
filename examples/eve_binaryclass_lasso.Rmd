@@ -138,8 +138,8 @@ if(nrow(df.vimp)) {
   ## plot
   df.vimp.plt$plt.dist.f +
     ggtitle("Distribution of Feature Coefficient")
-  df.vimp.plt$plt.features +
-    ggtitle("Top Features")
+  df.vimp.plt$plt.features + labs(y='Feature Coefficient (95% CI)') +
+    ggtitle("Top Features") 
 }
 ```
 
