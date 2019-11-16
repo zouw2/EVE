@@ -84,7 +84,7 @@ correlation(df.preval)
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 main <- paste('distribution across', length(unique(df.vimp$seed)), 'seed x', length(unique(df.vimp$cv)),'CV')
-xlab <- paste('# of times a feature is selected by lasso (alpha=', runSpec$alpha,')')
+xlab <- paste('# of times a feature is selected by lasso (alpha=', paste(runSpec$alpha, collapse = ','),')')
 if(nrow(df.vimp))  hist(table(df.vimp$feature), main = main , xlab = xlab)
 ```
 
@@ -121,7 +121,7 @@ df.vimp.plt <- plotVIMP2(df.vimp, bin = 100  )
 df.vimp.plt$plt.dist.f +
   ggtitle("Distribution of Feature Coefficient")
 df.vimp.plt$plt.features +
-  ggtitle("Top Features")
+  ggtitle("Top Features")+ ylab("Feature Coefficient (95% CI)")
 }
 ```
 
