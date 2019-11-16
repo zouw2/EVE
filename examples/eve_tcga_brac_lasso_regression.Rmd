@@ -76,7 +76,7 @@ plt$overall +
 ### correlation
 
 ```{r, echo=FALSE}
-correlation(df.preval)
+correlation(df.preval, 1003) # the scatter plot for seed 1001 and 1002 has a column of dots: many obs seem to be predicted to have the same value,which is strange
 ```
 
 
@@ -121,7 +121,7 @@ df.vimp.plt <- plotVIMP2(df.vimp, bin = 100  )
 df.vimp.plt$plt.dist.f +
   ggtitle("Distribution of Feature Coefficient")
 df.vimp.plt$plt.features +
-  ggtitle("Top Features")
+  ggtitle("Top Features") + ylab("Feature Coefficient (95% CI)")
 }
 ```
 
