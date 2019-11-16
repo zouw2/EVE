@@ -115,6 +115,7 @@ print(sizes)
 ###############
 ## handel CV ##
 ###############
+RNGversion('3.5.1') # backward compatible with earlier eve runs in rescomp3
 set.seed(seed)
 cvList <- caret::createFolds(y$col_surv * (as.integer(y$col_event) - 0.5), 
                              k = runSpec$num_CV, 

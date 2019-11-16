@@ -118,6 +118,7 @@ nFeature <- length(featureList)
 ###############
 ## handle CV ##
 ###############
+RNGversion('3.5.1') # backward compatible with earlier eve runs in rescomp3
 set.seed(specLocal$seed)
 
 if (runSpec$family %in% 'cox') {
