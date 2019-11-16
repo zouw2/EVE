@@ -23,7 +23,8 @@ runSpec <- list(
   RFE_criteria = 'gain',  ## gain or frequency
   split_CVs = T,
   queue_priority = "short", ## short, medium, long
-  server_management =  '-n 12 -R "span[hosts=1] rusage[mem=12]"' # this asks for a cluster with 12 o more CPU, each with 12G memory or more
+  nthread  = 20,
+  server_management =  '--mem-per-cpu=4G' # the element is used different between rosalind and rescomp. at rosalind, it is only used to request more memory
 )
 ########################################
 ### Input Data Processing (optional) ###
