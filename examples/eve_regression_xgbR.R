@@ -25,8 +25,10 @@ runSpec <- list(
   RFE_criteria = 'gain',  ## gain or frequency
   split_CVs = T,
   queue_priority = "short", ## short, medium, long
-#  server_management =  '-n 12 -R "span[hosts=1] rusage[mem=12]"' # this asks for a cluster with 12 o more CPU, each with 12G memory or more
-nthread=4, # this will feed into R implementation xgb.cv and xgb.train. a large number may increase the speed of cv, but make you wait longer to get access to the requested node. the python implementation of xgboost seems to able to grab what ever nodes avaiable; for the R version xgboost availabe in R 3.5.1, it seems we have to explicitly request it.
+  
+  server_management =  '--mem-per-cpu=4G', # the element is used different between rosalind and rescomp. at rosalind, it is only used to request more memory
+  #  server_management =  '-n 12 -R "span[hosts=1] rusage[mem=12]"' # this asks for a cluster with 12 o more CPU, each with 12G memory or more
+nthread=20, # this will feed into R implementation xgb.cv and xgb.train. a large number may increase the speed of cv, but make you wait longer to get access to the requested node. the python implementation of xgboost seems to able to grab what ever nodes avaiable; for the R version xgboost availabe in R 3.5.1, it seems we have to explicitly request it.
   "n_estimators" = 3000, # the largest number of round
   tune_params = list(max_depth = c(1,3,5), max_delta_step=c(0,1,3) ), # if a vector of length 1 is specified, the parameter will be assigned to xgb (and potential overwrite default parameter if conflict)
   pct_feature_for_grid_search = c(1, 0.5),
