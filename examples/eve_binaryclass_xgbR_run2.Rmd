@@ -13,7 +13,7 @@ output:
 ```{r}
 ## user input
 project_home <- "~/EVE/examples"
-project_name <- "xgboostR_binary_1"
+project_name <- "xgboostR_binary_2"
 ```
 
 ## 0. Load Data

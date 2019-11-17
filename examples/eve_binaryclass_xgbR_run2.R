@@ -10,7 +10,7 @@ runSpec <- list( # to be moved to  sbatch later
   num_CV = 3, # -1 for LOOCV
   
   project_home = "~/EVE/examples",
-  project_name = "xgboostR_binary_1",  
+  project_name = "xgboostR_binary_2",  
   training_data = "data/test_binaryclass_tcga_brca.csv", 
   label_name = "pam50_RNAseq", 
   sample_ID = "Patient_ID", 
@@ -25,8 +25,9 @@ runSpec <- list( # to be moved to  sbatch later
   RFE_criteria = 'gain',
   split_CVs = T,
   queue_priority = "short", ## short, medium, long
+  server_management =  '--mem-per-cpu=4G', # the element is used different between rosalind and rescomp. at rosalind, it is only used to request more memory
 #  server_management =  '-n 12 -R "span[hosts=1] rusage[mem=12]"', # this asks for a cluster with 12 o more CPU, each with 12G memory or more
-nthread=4, # this will feed into R implementation xgb.cv and xgb.train. a large number may increase the speed of cv, but make you wait longer to get access to the requested node. the python implementation of xgboost seems to able to grab what ever nodes avaiable; for the R version xgboost availabe in R 3.5.1, it seems we have to explicitly request it.
+nthread=20, # this will feed into R implementation xgb.cv and xgb.train. a large number may increase the speed of cv, but make you wait longer to get access to the requested node. the python implementation of xgboost seems to able to grab what ever nodes avaiable; for the R version xgboost availabe in R 3.5.1, it seems we have to explicitly request it.
   "n_estimators" = 3000, # the largest number of round
 #  'early_stopping_rounds' = 200, # how often to check early stopping, if not specified, use 1/eta
   evalm = 'f1_harmonic2', # this info will determine the eval_metric element in xgb_params. if not specified, the default will be ('binomial' = "logloss", "multinomial"= "mlogloss", "gaussian" = 'rmse'). customer evaluation functions currently implement: f1_harmonic2,f1_meanlog2 (similar to geometric mean),f1_arithmetic2
