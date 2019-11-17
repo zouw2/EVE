@@ -45,10 +45,62 @@ generate_cmd <- function(runSpec, curr_seed, cv, file_run, file_cmd){
   }
 }
 
+
+#' generate command strings
+#' @param runSpec list, user inputs
+#' @param curr_seed int, seed number to be used
+#' @param cv int, cv number to be used
+#' @param file_run, log filename for printing temp results while job is running
+#' @param file_cmd, filename where the sbatch command is saved into
+#' 
+generate_cmd_slurm <- function(runSpec, curr_seed, cv, file_run, file_cmd){
+  log_path <- runSpec["log_path"]
+  
+  if(is.null(runSpec[['server_management']]) || is.na(runSpec[['server_management']]) || runSpec[['server_management']] == '') {
+    runSpec[['server_management']] <- '--mem-per-cpu=4G'
+  }
+  #The CPU cores of each node support a feature called hyperthreading, wherein they are capable of running 2 threads each.
+  # here I assume a CPU has 2 threads
+  
+  key_command <- paste0("#!/bin/bash
+    #SBATCH -J ",  runSpec[['project_name']],"
+    #SBATCH --qos=", runSpec["queue_priority"],"
+    #SBATCH --cpus-per-task ", ifelse(!is.null(runSpec$nthread) && runSpec$nthread > 1, paste(max(1, round(runSpec$nthread/2)), '-N 1'),  4), "
+    #SBATCH ", runSpec[['server_management']],"
+    #SBATCH -o ",  runSpec[['project_name']],".o%J        
+    #SBATCH -e ",  runSpec[['project_name']],".e%J")
+
+  if(grepl("(py)$", runSpec$engine)){
+    scripts <- paste(key_command,
+                      "\npython3 ", runSpec["engineFile"], 
+                      " ", curr_seed,
+                      " ", paste0(log_path, '/metainfo.txt'),
+                      " ", cv)
+    cat(scripts, file=paste0(log_path, "/", file_cmd))
+    command <- paste0('sbatch ',log_path, "/", file_cmd,  ' -oo ', log_path, "/", file_run)
+                      
+    return(command)
+    
+  } else {
+    scripts <- paste0(key_command,
+                      "\nR CMD BATCH   --no-save --no-restore '--args ", curr_seed, ## arg 1
+                      " ", paste0(log_path, '/metainfo.Rdata'), ## arg 2
+                      " ", cv, ## arg 3, CV number
+                      "' ", runSpec["engineFile"], ## engine file
+                      " ", log_path, "/", file_run)
+    cat(scripts, file=paste0(log_path, "/", file_cmd))
+    command <- paste0("sbatch ", log_path, "/", file_cmd)
+    
+    return(command)
+  }
+}
+
 #' functions for submitting jobs
 #' @param runSpec list, user inputs
 
-sbatch_submit <- function(runSpec, maxJob=1200){
+sbatch_submit <- function(runSpec, maxJob=1200, scheduler = 'slurm'){
+  
+  print( 'When using EVE in rescomp3, the scheduler should be "LSF". In other systems, the scheduler is "slurm"')
   
   engine_path <- "~/EVE/eve/models/"
   #engineFile <- paste0(engine_path, runSpec$engine)
@@ -107,7 +159,7 @@ sbatch_submit <- function(runSpec, maxJob=1200){
   if(maxJob > 0){
     nJ <- ifelse( runSpec$split_CVs, runSpec$num_CV, 1) * runSpec$num_seeds
     if( nJ > maxJob ){
-      stop(paste('you are submitting', nJ, 'jobs to the cluster, which is unusual, given that maximal total job is set to', maxJob,'. If you are sure that you want to do this, please call sbatch_submit with an argument of "maxJob =', nJ,'"'))
+      stop(paste('you are submitting', nJ, 'jobs to the cluster, which is unusual, given that maximal total job is set to', maxJob,'. If you are sure that you want to do this, please call sbatch_submit with an argument of "maxJob =', nJ,'". Alternatively, you can set maxJob=0 to disable this check'))
     }
   }
   
@@ -140,9 +192,13 @@ sbatch_submit <- function(runSpec, maxJob=1200){
         file_cmd <- paste0("cmd_cv", cv, "_", curr_seed, ".log")
         
         ## create batch file command
-        command <- generate_cmd(runSpec, curr_seed, cv, file_run, file_cmd)
-        system(paste0("module load apps/python3
-                    ", command))
+        if(scheduler == 'LSF') {
+          command <- generate_cmd(runSpec, curr_seed, cv, file_run, file_cmd)
+        }else{
+          command <- generate_cmd_slurm(runSpec, curr_seed, cv, file_run, file_cmd)
+        }
+        system(paste0(ifelse(grepl("(py)$", runSpec$engine), "module load apps/python3
+                    ", ''), command))
       }
     }
     print(paste0(runSpec$num_seeds*cv, " jobs submitted!"))
@@ -156,9 +212,13 @@ sbatch_submit <- function(runSpec, maxJob=1200){
       file_cmd <- paste0("cmd_cv", cv, "_", curr_seed, ".log")
       
       ## create batch file command
-      command <- generate_cmd(runSpec, curr_seed, cv, file_run, file_cmd)
-      system(paste0("module load apps/python3
-                    ", command))
+      if(scheduler == 'LSF') {
+        command <- generate_cmd(runSpec, curr_seed, cv, file_run, file_cmd)
+      }else{
+        command <- generate_cmd_slurm(runSpec, curr_seed, cv, file_run, file_cmd)
+      }
+      system(paste0(ifelse(grepl("(py)$", runSpec$engine), "module load apps/python3
+                    ",''), command))
     }
     print(paste0(runSpec$num_seeds, " jobs submitted!"))
   }
