@@ -170,6 +170,7 @@ if(length(unique(y[, 1])) > 2 && runSpec$family == "multinomial") {
 ###############
 ## handle CV ##
 ###############
+RNGversion('3.5.1') # backward compatible with earlier eve runs in rescomp3
 set.seed(specLocal$seed)
 
 # the following line will be a problem for survival outcome
