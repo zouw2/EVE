@@ -10,7 +10,7 @@
 ### Clone this repo to your HOME
 
 ```console
-ssh rescomp5003.gene.com
+ssh rosalind.gene.com
 cd ~
 git clone https://github.roche.com/ED-EB/EVE.git
 ```
