@@ -779,7 +779,8 @@ plotVIMP2 <- function(df, ft_num=NULL, top_n=20, top_n_by="freq", ft_name=NULL,
       
   return(list(df = df.vimp.scores,
               plt.dist.f = plt.dist.f,
-              plt.features = plt.features
+              plt.features = plt.features,
+              top_df = df.top.f
               ))
   }
   
