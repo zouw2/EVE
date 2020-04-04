@@ -21,8 +21,8 @@ _current setup assumes users always clone this repo to your unix HOME_
 
 Install some R libraries
 
-Open [RStudio on rescomp](http://rescomp5105.gene.com:8080), 
-make sure you are using **R 3.5.1** , then:
+Open [RStudio on Rosalind](http://gred-rstudio-p01.sc1.roche.com:8080/), 
+make sure you are using **R 3.6.1** , then:
 
 ```r
 pkgs <- c("prodlim", "survival", "survminer", "glmnet", "pec", "pheatmap",
