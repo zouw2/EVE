@@ -10,19 +10,23 @@
 ### Clone this repo to your HOME
 
 ```console
+
 ssh rosalind.gene.com
+
 cd ~
-git clone https://github.roche.com/ED-EB/EVE.git
+git clone --branch dev-models https://github.roche.com/ED-EB/EVE.git
 ```
-_current setup assumes users always clone this repo to your unix HOME_
+_current setup assumes users always clone this repo to your unix HOME_. The branch dev-models contains the latest update.
 
 
 ### Install Required Packages
+
 
 Install some R libraries
 
 Open [RStudio on Rosalind](http://gred-rstudio-p01.sc1.roche.com:8080/), 
 make sure you are using **R 3.6.1** , then:
+
 
 ```r
 pkgs <- c("prodlim", "survival", "survminer", "glmnet", "pec", "pheatmap",
@@ -40,12 +44,14 @@ install.packages(pkgs)
 
 ### Execute
 
+
 Go to [`examples`](https://github.roche.com/ED-EB/EVE/tree/master/examples) folder, copy sbatch_xxxx.R to your [project home](https://docs.google.com/spreadsheets/d/1OAmZDae7MF9NXBBwR6YpHjLxbUVFbFw7_y6HzFJegHY/edit#gid=0&range=A4). This R script 
+
 1. collects input parameters, including an engine script which may or may not be implemented in R, 
 2. prepares input data file if necessary
 3. splits repeated CV or LOOCV by repeated calling the engine script on different CPU
 
-For more definition of user inputs in sbatch_xxx.R, please see [here](https://docs.google.com/spreadsheets/d/1OAmZDae7MF9NXBBwR6YpHjLxbUVFbFw7_y6HzFJegHY/edit#gid=0).
+For more definition of user inputs in sbatch_xxx.R, please see [Google Doc](https://docs.google.com/spreadsheets/d/1OAmZDae7MF9NXBBwR6YpHjLxbUVFbFw7_y6HzFJegHY/edit#gid=0).
 
 After you modify sbatch_xxx.R appropriately, then click **Source** in RStudio, 
 it will start running the models on different CPUs.
