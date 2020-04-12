@@ -178,7 +178,7 @@ for (cv.idx in cvList){
       df_vimp_tmp <- data.frame( df.out$features,
                                 "lambda" = unname(df.out$lambda),'alpha' =  df.out$alpha,
                                 "cv" = cv_id, stringsAsFactors = F)
-      colnames(df_vimp_tmp) <- c("feature", 'vimp', "lambda", 'alpha','cv')
+      colnames(df_vimp_tmp) <- c("feature", 'coef','vimp', "lambda", 'alpha','cv')
       
       df_vimp <- rbind(df_vimp, df_vimp_tmp)
     }
