@@ -1,3 +1,17 @@
+vbind <- function(lst) {
+  
+  stopifnot(is.list(lst))
+  stopifnot(all(sapply(lst, is.vector)))
+  stopifnot(all(sapply(lst, function(x) length(x) == length(names(x))))) 
+  
+  nam1 <- Reduce(union, lapply(lst, names))
+  
+  r1 <- matrix(NA, nrow=length(nam1), ncol=0, dimnames = list(nam1, c()))
+  
+  t( Reduce(cbind, lapply(lst, function(x) x[nam1]), init = r1) )
+  
+}
+
 mean1 <- function(a){
   stopifnot(is.vector(a))
     a <- a[!is.na(a)]
@@ -403,11 +417,14 @@ extractBeta <- function(gObj, lambda){
 
   if(is.list(b0)) {
     b1 <- do.call(cbind, b0)
-    colnames(b1) <- paste('vimp_', names(b0), sep='')
+ #   colnames(b1) <- paste('vimp_', names(b0), sep='')
+     colnames(b1) <- paste('coef_', names(b0), sep='')
+    
   }else{
     b1 <- b0
     stopifnot(ncol(b1) == 1)
-    colnames(b1) <- 'vimp' #to work with reporting program
+#    colnames(b1) <- 'vimp' #to work with reporting program
+    colnames(b1) <- 'coef'  #to work with reporting program
   }
 
   b1 <- as.matrix(b1)
@@ -571,18 +588,40 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
   
   x1 <- X_train[, f]
 
-  if(F){ # the previous way of only tuning lambda
-    maxL <- lambdaSum( sapply(1:nCv4lambda, function(i) {
+  a2 <- a1
+  importance <- NULL
+  
+  if(length(a2) == 1){ # the previous way of only tuning lambda. It was commented out earlier, but wei brought this back when incorporating nextdoor analysis
+    tuneResults <- lapply(1:nCv4lambda, function(i) {
       set.seed(seed +100 + i)
       
       r1 <- cv.glmnet(x=x1, y=(function(yobj){
         if(glmnetFam =='cox') return(Surv(yobj)); 
-        return(yobj) })(Y_train), family=glmnetFam, alpha = a1 , standardize =T, weights=w, ...)
+        return(yobj) })(Y_train), keep=T, family=glmnetFam, alpha = a2 , standardize =T, weights=w, ...)
       
-      r1[[lambdaChoice]]
+      vimp <- NULL
+      if(require('nextdoor') && length(runPairs) == 0){
+        n1 <- nextdoor.glmnet(x=x1, y=(function(yobj){
+          if(glmnetFam =='cox') return(Surv(yobj)); 
+          return(yobj) })(Y_train), cv_glm =r1, nams= colnames(x1), family=glmnetFam,  glmnet_alpha = a2, standardize =T , selectionType = ifelse(lambdaChoice == "lambda.1se", 1, 0 ), pv=F, score=F, trace = F)
+        vimp = unlist(n1$worsen)
+        stopifnot(length(vimp) == length(n1$worsen)) # assume every element of worsen is a scalar
+    #    vimp =  matrix(vimp, nrow=1, dimnames = list(c(),names(vimp)) )
+      }
       
-    }) , na.rm = T)
-  }else{
+      list(lambda = r1[[lambdaChoice]], vimp=vimp)
+      
+    })  
+    
+    maxL <- lambdaSum( sapply(tuneResults, function(x) x[['lambda']])  , na.rm = T)
+    
+    if(!is.null(tuneResults[[1]][['vimp']] ) ) {
+      importance <- vbind( lapply(tuneResults, function(x) x[['vimp']] ) ) 
+      
+      importance[is.na(importance)] <-  min( apply(importance, 2, min, na.rm=T), 0)
+      importance <- colMeans(importance)
+    }
+  }else{ # allow tuning alpha
   
     set.seed(seed + 101 )
     tuneResults <- tuneLassoParam(n=nCv4lambda, lsum =lambdaSum, nfolds=10, x=x1, y= Y_train, fam=glmnetFam, alpha=a1, weights=w, ... )
@@ -607,7 +646,7 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
 
 # features from g1
   features <- extractBeta(g1, lambda=maxL) 
-  featureCol <- colnames(features)
+#  featureCol <- colnames(features)
  
   
 # feature select with runPairs
@@ -711,11 +750,16 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
   
   if(nrow(features) > 0) {
     features <- data.frame(row.names(features), features, row.names = NULL, stringsAsFactors = F)
+    if(!is.null(importance)) {
+      stopifnot(length(intersect( features[, 1] , names(importance) )) > 0) # importance may be calculate based on a more stringent lambda than maxL (determined by nextdoor::getIndex. so the length of importance can be shorter than features based on maxL
+      features$vimp <- importance[features[, 1]]
+    }  
   }else{
     features <- data.frame(matrix( NA, ncol = ncol(features) + 1, nrow=0))
   }
 
-  colnames(features) <- c('feature', featureCol)  
+#  colnames(features) <- c('feature', featureCol)  
+  colnames(features)[1] <- 'feature'
   
   ## if all the coefficients are 0 (no important features)
 #  if(nrow(features)==0){ features <- NA}
