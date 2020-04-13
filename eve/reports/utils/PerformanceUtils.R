@@ -804,7 +804,7 @@ plotCoef <- function(df, top_n=20, top_n_by="freq", ft_name=NULL, ci1=0.025){
   #'But in rfsrc, negative vimp might be least important (ignore_neg=T) and hence ignored.     
 
 
-  stopifnot( all(c('vimp', 'coef') %in% colnames(df) ) )
+  stopifnot( all(c('coef') %in% colnames(df) ) )
   
   if(nrow(df) == 0) {
     cat('no feature retained')
@@ -828,10 +828,13 @@ plotCoef <- function(df, top_n=20, top_n_by="freq", ft_name=NULL, ci1=0.025){
 #  df.feature.freq <- df.feature.freq[order(df.feature.freq$n * -1), ]
 #  df.feature.freq$rank_n <- 1:nrow(df.feature.freq)
   
+  
+  if( 'vimp' %in% colnames(df)){
   sum_vimp <-   with(df, tapply(vimp, list(seed, feature), sum)) 
   vimp.avg <- colMeans(sum_vimp,na.rm=T)
  
   df.feature.freq$vimp <- vimp.avg[as.character(df.feature.freq$feature)]
+  }
 #  df.feature.freq$'vimp.avg' <- df.feature.freq$vimp
   
 #  df.feature.freq <- df.feature.freq[order(df.feature.freq$vimp * -1), ]
@@ -863,7 +866,7 @@ plotCoef <- function(df, top_n=20, top_n_by="freq", ft_name=NULL, ci1=0.025){
       
       df.top.f <- df.top.f %>% 
         # also arrange by most frequent if tied
-        arrange(desc(coef.avg.abs), desc(n), desc(vimp)) %>%
+        arrange(desc(coef.avg.abs), desc(n) ) %>%
         slice(1:top_n) 
     } else {
       if (top_n_by == "freq") {
@@ -878,10 +881,11 @@ plotCoef <- function(df, top_n=20, top_n_by="freq", ft_name=NULL, ci1=0.025){
         
         df.top.f <- df.top.f %>%
           ## for ridge, all freq's are the same, so also arrange by size
-          arrange(desc(n), desc(vimp)) %>%
+          arrange(desc(n), desc(coef.avg.abs)) %>%
           slice(1:top_n)
       } else {
         if (top_n_by == "gain") {
+          stopifnot( 'vimp' %in% colnames(df))
           plt.dist <- ggplot(df.feature.freq, aes(x=vimp)) + 
             #    geom_histogram(color="black", fill="white", bins=bins) +
             geom_histogram(color="black", fill="white") +

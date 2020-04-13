@@ -591,16 +591,18 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
   a2 <- a1
   importance <- NULL
   
+  set.seed(seed + 101 )
+  
   if(length(a2) == 1){ # the previous way of only tuning lambda. It was commented out earlier, but wei brought this back when incorporating nextdoor analysis
     tuneResults <- lapply(1:nCv4lambda, function(i) {
-      set.seed(seed +100 + i)
+  #    set.seed(seed +100 + i)
       
       r1 <- cv.glmnet(x=x1, y=(function(yobj){
         if(glmnetFam =='cox') return(Surv(yobj)); 
         return(yobj) })(Y_train), keep=T, family=glmnetFam, alpha = a2 , standardize =T, weights=w, ...)
       
       vimp <- NULL
-      if(require('nextdoor') && length(runPairs) == 0){
+      if(require('nextdoor') && length(runPairs) == 0 && glmnetFam !='cox'){  # nextdoor is not implemented for cox model
         n1 <- nextdoor.glmnet(x=x1, y=(function(yobj){
           if(glmnetFam =='cox') return(Surv(yobj)); 
           return(yobj) })(Y_train), cv_glm =r1, nams= colnames(x1), family=glmnetFam,  glmnet_alpha = a2, standardize =T , selectionType = ifelse(lambdaChoice == "lambda.1se", 1, 0 ), pv=F, score=F, trace = F)
@@ -623,7 +625,7 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     }
   }else{ # allow tuning alpha
   
-    set.seed(seed + 101 )
+  #  set.seed(seed + 101 )
     tuneResults <- tuneLassoParam(n=nCv4lambda, lsum =lambdaSum, nfolds=10, x=x1, y= Y_train, fam=glmnetFam, alpha=a1, weights=w, ... )
     
     tuneSummary <- t( sapply(tuneResults, function(x) {

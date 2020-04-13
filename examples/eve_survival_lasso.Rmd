@@ -92,11 +92,10 @@ if(nrow(df.vimp)) hist(table(df.vimp$feature), main = main , xlab = xlab)
 
 par(mar=c(5,20,4,2))
 if(nrow(df.vimp)) {
-  barplot(tail(sort(table(df.vimp$feature)), 20), 
-        horiz =T, las=2, main='Number of times a feature is used')
+ # barplot(tail(sort(table(df.vimp$feature)), 20),  horiz =T, las=2, main='Number of times a feature is used')
 
 
-  cat('(currently only Lasso has this graph)')
+#  cat('(currently only Lasso has this graph)')
   c1 <-  countUniqueFeatures(df.vimp)
 
   print(paste('summary of number of features used in each run under', nrow(c1),'seeds and', ncol(c1),'CVs'))
@@ -112,12 +111,13 @@ if(nrow(df.vimp)) {
 
 ```{r, echo=FALSE}
 if(nrow(df.vimp)) {
-df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 10)
-## plot
-df.vimp.plt$plt.dist.f +
-  ggtitle("Distribution of Feature Coefficient")
-df.vimp.plt$plt.features +
-  ggtitle("Top Features")
+
+#df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 10)
+df.vimp.plt <- plotCoef(df.vimp, top_n = 10, top_n_by = "freq")
+
+  ## plot
+df.vimp.plt$plt.dist 
+df.vimp.plt$plt.features
 }
 ```
 
