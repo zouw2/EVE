@@ -28,10 +28,10 @@ load(paste0(project_home,"/log/", project_name, "/metainfo.Rdata"))
 
 if(grepl("\\.r$|\\.R$", runSpec$engine)){
   df.preval <- getResults(project_home, project_name, "rdata", objName = "df_pred")
-  df.vimp   <- getResults(project_home, project_name, "rdata", objName = "df_vimp")
+  df.vimp   <- getResults(project_home, project_name, "rdata", objName = "df_vimp", requireCPrevalidation=F)
 } else {
   df.preval <- getResults(project_home, project_name, "prevalidation")
-  df.vimp   <- getResults(project_home, project_name, "vimp")
+  df.vimp   <- getResults(project_home, project_name, "vimp", requireCPrevalidation=F)
 }
 
 ## get original data info
@@ -92,9 +92,8 @@ if(nrow(df.vimp))  hist(table(df.vimp$feature), main = main , xlab = xlab)
 par(mar=c(5,20,4,2))
 
 if(nrow(df.vimp)) {
-  barplot(tail(sort(table(df.vimp$feature)), 20), 
-          horiz =T, las=2, main='Number of times a feature is used')
-  cat('(currently only Lasso has this graph)')
+#  barplot(tail(sort(table(df.vimp$feature)), 20), horiz =T, las=2, main='Number of times a feature is used')
+#  cat('(currently only Lasso has this graph)')
 
   c1 <-  countUniqueFeatures(df.vimp)
 
@@ -115,19 +114,42 @@ if(nrow(df.vimp)) {
 
 #or alternatively, top features based on frequency of being included in the model
 if(nrow(df.vimp)) {
-df.vimp.plt <- plotVIMP2(df.vimp, bin = 100  )
 
-## plot
-df.vimp.plt$plt.dist.f +
-  ggtitle("Distribution of Feature Coefficient")
-df.vimp.plt$plt.features +
-  ggtitle("Top Features") + ylab("Feature Coefficient (95% CI)")
+if (F){ # previous plotting  
+  df.vimp.plt <- plotVIMP2(df.vimp, bin = 100  )
+  
+  ## plot
+  df.vimp.plt$plt.dist.f +
+    ggtitle("Distribution of Feature Coefficient")
+  df.vimp.plt$plt.features +
+    ggtitle("Top Features") + ylab("Feature Coefficient (95% CI)")
+  }
+
+ 
+  df.plt <- plotCoef(df.vimp,top_n_by="gain"  )
+
+  ## plot
+  print( df.plt$plt.dist ) 
+  print( df.plt$plt.features )  
+
+    # top by freq
+  df.plt <- plotCoef(df.vimp,top_n_by="freq"  )
+
+  ## plot
+  print( df.plt$plt.dist )   
+  print( df.plt$plt.features )  
+  
+    set.seed(27519)
+  with(df.plt$top_df,  wordcloud::textplot(x = n, y = vimp, words=feature, show.lines = T, new=T, xlab= 'Frequency (summed across CVs/seeds)', ylab = "Gain (averaged across seeds)"))
+  
 }
 ```
 
 ```{r, fig.width=8, echo=FALSE}
 library(pheatmap)
-plotHeatmap(df.vimp.plt$df, df.orig)
+#plotHeatmap(df.vimp.plt$df, df.orig)
+plotHeatmap(df.plt$df, df.orig)
+
 ```
 
 
