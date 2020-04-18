@@ -1,6 +1,12 @@
 vbind <- function(lst) {
   
   stopifnot(is.list(lst))
+  n1 <- sapply(lst, is.null)
+  if(any(n1)){
+    lst <- lst[!n1]
+    print(paste('removing', sum(n1),'elements with NULL values'))
+    if(length(lst) == 0) return (NULL)
+  }
   stopifnot(all(sapply(lst, is.vector)))
   stopifnot(all(sapply(lst, function(x) length(x) == length(names(x))))) 
   
@@ -620,8 +626,10 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     if(!is.null(tuneResults[[1]][['vimp']] ) ) {
       importance <- vbind( lapply(tuneResults, function(x) x[['vimp']] ) ) 
       
-      importance[is.na(importance)] <-  min( apply(importance, 2, min, na.rm=T), 0)
-      importance <- colMeans(importance)
+      if(!is.null(importance)) {
+        importance[is.na(importance)] <-  min( apply(importance, 2, min, na.rm=T), 0)
+        importance <- colMeans(importance)
+      }
     }
   }else{ # allow tuning alpha
   
