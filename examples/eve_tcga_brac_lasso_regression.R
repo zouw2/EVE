@@ -24,11 +24,11 @@ runSpec <- list(
   queue_priority = "short", ## short, medium, long
   
   ## lasso specific parameters
-  alpha = 1,                 # use 0.5 for elastic net, or 0 for ridge
+  alpha = 0.01,                 # use 0.5 for elastic net, or 0 for ridge
   nCv4lambda = 10,           # the number of repeated CV to get optimized lambda
   lambdaSum='mean', # after getting nCv4lambda number of lambda, how to summarize them
   lambdaChoice = 'lambda.min', # or lambda.1se, 2 options from cv.glmnet
-  variable2ignore =c()
+  variable2ignore =c('os_event')
 )
 ########################################
 ### Input Data Processing (optional) ###
