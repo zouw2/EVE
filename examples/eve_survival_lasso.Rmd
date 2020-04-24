@@ -116,7 +116,7 @@ if(nrow(df.vimp)) {
 df.vimp.plt <- plotCoef(df.vimp, top_n = 10, top_n_by = "freq")
 
   ## plot
-df.vimp.plt$plt.dist 
+print( df.vimp.plt$plt.dist ) 
 df.vimp.plt$plt.features
 }
 ```

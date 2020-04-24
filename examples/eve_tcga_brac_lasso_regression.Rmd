@@ -109,10 +109,6 @@ if(nrow(df.vimp)) {
 
 ```{r, echo=FALSE}
 
-# top features based on average coefficients
-#df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 20)
-
-#or alternatively, top features based on frequency of being included in the model
 if(nrow(df.vimp)) {
 
 if (F){ # previous plotting  
