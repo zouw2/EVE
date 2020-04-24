@@ -59,7 +59,7 @@ summary(df.orig[[runSpec$label_name]])
 
 
 ```
-run with `r runSpec$engine`.
+run with `r runSpec$engine` with alpha = `r runSpec$alpha`.
 
 ## 1. Scores
 
@@ -92,9 +92,8 @@ if(nrow(df.vimp))  hist(table(df.vimp$feature), main = main , xlab = xlab)
 par(mar=c(5,20,4,2))
 
 if(nrow(df.vimp)) {
-  barplot(tail(sort(table(df.vimp$feature)), 20), 
-          horiz =T, las=2, main='Number of times a feature is used')
-  cat('(currently only Lasso has this graph)')
+#  barplot(tail(sort(table(df.vimp$feature)), 20),           horiz =T, las=2, main='Number of times a feature is used')
+#  cat('(currently only Lasso has this graph)')
 
   c1 <-  countUniqueFeatures(df.vimp)
 
@@ -110,25 +109,27 @@ if(nrow(df.vimp)) {
 
 ```{r, echo=FALSE}
 
-# top features based on average coefficients
-#df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 20)
 
-#or alternatively, top features based on frequency of being included in the model
 if(nrow(df.vimp)) {
-df.vimp.plt <- plotVIMP2(df.vimp, bin = 100  )
 
+#  df.vimp.plt <- plotVIMP2(df.vimp, bin = 100  )
+ df.vimp.plt <- plotCoef(df.vimp, top_n = 20, top_n_by = "freq")
 ## plot
-df.vimp.plt$plt.dist.f +
-  ggtitle("Distribution of Feature Coefficient")
-df.vimp.plt$plt.features +
-  ggtitle("Top Features")+ ylab("Feature Coefficient (95% CI)")
+print( df.vimp.plt$plt.dist )
+df.vimp.plt$plt.features  
 }
 ```
 
 ```{r, fig.width=8, echo=FALSE}
 library(pheatmap)
+
+# next door analysis is not available when we tune alpha. Here is a temporary fix to rename variable names
+
+colnames(df.vimp.plt$df) <- gsub('coef.avg','vimp', colnames(df.vimp.plt$df))
 plotHeatmap(df.vimp.plt$df, df.orig)
 ```
+
+lasso coefficients are labeled as 'vimp' above.
 
 ```{r alpha selection, echo=F}
 
