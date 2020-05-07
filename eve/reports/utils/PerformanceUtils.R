@@ -1,3 +1,9 @@
+round.signif <- function(x, p)
+{
+  ifelse(abs(x)>=1, round(x, p), signif(x, p))
+}
+
+
 if( ! (R.version$major >= 3 && R.version$minor >= 5.1 )) {
   stop(paste('reporting needs R version >= 3.5.1'))
 }
@@ -830,8 +836,25 @@ plotCoef <- function(df, top_n=20, top_n_by="freq", ft_name=NULL, ci1=0.025){
   
   
   if( 'vimp' %in% colnames(df)){
-  sum_vimp <-   with(df, tapply(vimp, list(seed, feature), sum)) 
-  vimp.avg <- colMeans(sum_vimp,na.rm=T)
+    sel_vimp_na <- is.na(df$vimp)
+    if(any(sel_vimp_na)){
+      min_vimp <- min(df$vimp[!sel_vimp_na] )
+      print(paste('there are', sum(sel_vimp_na), 'NA values in vimp before summation within seeds; they are imputed with the smallest vimp value of',  ifelse(min_vimp >0, 0, round.signif(min_vimp,2))))
+      df[sel_vimp_na,'vimp'] <- min(0, min_vimp)
+      rm(sel_vimp_na, min_vimp)
+    }
+    
+    sum_vimp <-   with(df, tapply(vimp, list(seed, feature), sum))
+  
+    sel_vimp_na <- is.na(sum_vimp)
+    if( any(as.vector(sel_vimp_na)) ){
+      min_vimp <- min(as.vector(sum_vimp[!sel_vimp_na]) )
+      print(paste('there are', sum(as.vector(sel_vimp_na)), 'NA values in vimp after summation within seeds; they are imputed with the smallest vimp value of',  ifelse(min_vimp >0, 0, round.signif(min_vimp,2))))
+      sum_vimp[sel_vimp_na] <- min_vimp
+    }
+  
+  vimp.avg <- colMeans(sum_vimp)
+ stopifnot(!any(is.na(vimp.avg)))
  
   df.feature.freq$vimp <- vimp.avg[as.character(df.feature.freq$feature)]
   }
