@@ -198,7 +198,7 @@ for (cv.idx in cvList){
   } else {
     if (specLocal$cv_id_curr == cv_id){
       print("1 CV per job")
-      print(paste("Fold number:", cv_id))
+      print(paste("Fold number:", cv_id,'with seed',per_cv_seed ))
       X_train = x[-cv.idx, featureList, drop=F]
       Y_train = y[-cv.idx, , drop=F]
       X_test  = x[ cv.idx, featureList, drop=F]

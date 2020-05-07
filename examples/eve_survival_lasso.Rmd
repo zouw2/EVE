@@ -53,7 +53,7 @@ cat(num.seed, "runs, each run contains", num.cv, "CVs.\n")
 #checkOutput(path = with(runSpec, paste(project_home,'results', project_name, sep='/')), pattern = paste( '\\.rdata', sep=''), posSeed=4, posSplit = 5 )
 
 ```
-run with `r runSpec$engine`.
+run with `r runSpec$engine`  with alpha = `r runSpec$alpha`.
 
 ## 1. Scores
 
@@ -78,6 +78,14 @@ df.in <- df.preval %>%
 
 fit1 <- survfit(Surv(col_surv, col_event) ~ pred.binary, data = df.in)
 ggsurvplot(fit1, data = df.in, pval = TRUE)
+```
+
+
+
+```{r look at individual prediction, echo=F, fig.height=4, fig.width=4}
+
+with(subset(as.data.frame(df.preval, seed == 1001)), plot(y = col_surv, x = pred, pch=ifelse(col_event == 1, 16, 1), main = 'prediction under seed 1001' ))
+
 ```
 
 ## 2. Important Features
@@ -113,11 +121,21 @@ if(nrow(df.vimp)) {
 if(nrow(df.vimp)) {
 
 #df.vimp.plt <- plotVIMP2(df.vimp, bin = 100, top_n = 10)
-df.vimp.plt <- plotCoef(df.vimp, top_n = 10, top_n_by = "freq")
+  df.plt <- plotCoef(df.vimp,top_n_by="gain"  )
 
   ## plot
-print( df.vimp.plt$plt.dist ) 
-df.vimp.plt$plt.features
+  print( df.plt$plt.dist ) 
+  print( df.plt$plt.features )  
+
+    # top by freq
+  df.plt <- plotCoef(df.vimp,top_n_by="freq"  )
+
+  ## plot
+  print( df.plt$plt.dist )   
+  print( df.plt$plt.features )  
+  
+    set.seed(27519)
+  with(subset(df.plt$top_df, !is.na(vimp)),  wordcloud::textplot(x = n, y = vimp, words=feature, show.lines = T, new=T, xlab= 'Frequency (summed across CVs/seeds)', ylab = "Gain (averaged across seeds)"))
 }
 ```
 

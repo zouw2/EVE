@@ -608,7 +608,7 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
         return(yobj) })(Y_train), keep=T, family=glmnetFam, alpha = a2 , standardize =T, weights=w, ...)
       
       vimp <- NULL
-      if(require('nextdoor') && length(runPairs) == 0 && ! glmnetFam %in% c('cox', "multinomial")){  # nextdoor is not implemented for cox model
+      if(require('nextdoor') && length(runPairs) == 0 && ! glmnetFam %in% c("multinomial")){  # nextdoor is not implemented for cox model
         n1 <- nextdoor.glmnet(x=x1, y=(function(yobj){
           if(glmnetFam =='cox') return(Surv(yobj)); 
           return(yobj) })(Y_train), cv_glm =r1, nams= colnames(x1), family=glmnetFam,  glmnet_alpha = a2, standardize =T , selectionType = ifelse(lambdaChoice == "lambda.1se", 1, 0 ), pv=F, score=F, trace = F)

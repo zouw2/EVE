@@ -94,6 +94,13 @@ fit1 <- survfit(Surv(col_surv, col_event) ~ pred.binary, data = df.in)
 ggsurvplot(fit1, data = df.in, pval = TRUE)
 ```
 
+
+```{r look at individual prediction, echo=F, fig.height=4, fig.width=4}
+
+with(subset(as.data.frame(df.preval, seed == 1001)), plot(y = col_surv, x = pred, pch=ifelse(col_event == 1, 16, 1), main = 'prediction under seed 1001' ))
+
+```
+
 ## 2. Important Features
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
