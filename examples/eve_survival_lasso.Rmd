@@ -84,7 +84,7 @@ ggsurvplot(fit1, data = df.in, pval = TRUE)
 
 ```{r look at individual prediction, echo=F, fig.height=4, fig.width=4}
 
-with(subset(as.data.frame(df.preval, seed == 1001)), plot(y = col_surv, x = pred, pch=ifelse(col_event == 1, 16, 1), main = 'prediction under seed 1001' ))
+with(subset(as.data.frame(df.preval), seed == 1001 & size == max(size)), plot(y = col_surv, x = pred, pch=ifelse(col_event == 1, 16, 1), ylab=runSpec$surv_col, xlab= paste('prediction for',  length(unique(get(runSpec$sample_ID))), 'subjects'), main = paste('prediction under seed 1001' )))
 
 ```
 
@@ -135,7 +135,8 @@ if(nrow(df.vimp)) {
   print( df.plt$plt.features )  
   
     set.seed(27519)
-  with(subset(df.plt$top_df, !is.na(vimp)),  wordcloud::textplot(x = n, y = vimp, words=feature, show.lines = T, new=T, xlab= 'Frequency (summed across CVs/seeds)', ylab = "Gain (averaged across seeds)"))
+  
+    with(subset(df.plt$top_df, !is.na(vimp)),  wordcloud::textplot(x = n, y = vimp, words=feature, show.lines = T, new=T, xlab= 'Frequency (summed across CVs/seeds)', ylab = "Gain (averaged across seeds)", xlim=c(0, max(n)), ylim=range(vimp), main=paste('top', length(unique(feature)),'features')))
 }
 ```
 
