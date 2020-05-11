@@ -147,5 +147,12 @@ aggBrier <- function(pred, observed, outcome.var, batchVar='seed', idVar=''){
   })
   
   if(class(r2) %in% c('matrix','data.frame')) colnames(r2) <- as.character(ub)
+  if( is.vector(r2)  ){
+    if(length(un) == 1){
+      r2 <- matrix(r2,nrow =1, dimnames=list(as.character(un), as.character(ub)))
+    }else{
+      stop('unexpected situation to assess brier score. come home to debug')
+    }
+  }
   r2
 }
