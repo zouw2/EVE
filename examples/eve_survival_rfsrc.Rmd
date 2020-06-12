@@ -119,6 +119,17 @@ plotHeatmap(df.vimp.plt$df, df.orig)
 ```
 
 
+## marginal effects
+
+```{r, fig.width=8, echo=FALSE, fig.height=8 }
+
+v.obj <- rfsrc( as.formula( paste('Surv(', runSpec$surv_col,',',runSpec$event_col,')~.')), df.orig[, setdiff(colnames(df.orig), runSpec$sample_ID)])
+
+plot.variable(v.obj, plots.per.page = 2, xvar.names = with(df.vimp.plt, head(as.data.frame(top_df))[, 'feature']))
+
+ 
+```
+
 
 
 
