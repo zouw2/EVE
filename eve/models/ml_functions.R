@@ -112,7 +112,10 @@ xgbCVwrapper <- function(X_train, Y_train, X_test, Y_test , ft_seqs,  weight_tra
   
   if(!is.null(spec$nthread) && spec$nthread > 1 && !('nthread' %in% names(params))){
     params[['nthread']] <- spec$nthread 
-    print(paste('insteat nthread of',spec$nthread ,'to params'))
+    print(paste('insert nthread of',spec$nthread ,'to params'))
+  }else{
+    params[['nthread']] <- 8
+    print('using default nthread of 8')
   }
   
   internal_eval_metric <- c('error','rmse','logloss','mlogloss','auc','aucpr','merror', 'ndcg')
@@ -122,7 +125,7 @@ xgbCVwrapper <- function(X_train, Y_train, X_test, Y_test , ft_seqs,  weight_tra
   
   stopifnot(all(colnames(X_train) == colnames(X_test)))
   
-  # allow users to replace default params specified in XGBoost.r
+  # allow users to replace default params specified in XGBoost.r, only if a single value is specified
   if(length(spec$tune_params) > 0 ) {
     len <- sapply(spec$tune_params, length)
     for (v in names(len)[len==1]){
@@ -200,20 +203,21 @@ xgbCVwrapper <- function(X_train, Y_train, X_test, Y_test , ft_seqs,  weight_tra
       print('parameters being evaluated:')
       print1(paraList[[i]])
       if(params[['eval_metric']] %in% internal_eval_metric ){
-      cv1 <- xgboost::xgb.cv(
-        params = paraList[[i]],
-        data = dtrain,
-        nrounds = ifelse(!(is.null(spec$n_estimators)||is.na(spec$n_estimators)), spec$n_estimators, 1000),
-        folds = folds1, # so the cv split will be the same across the entire unit run
-        prediction = F,
-       # verbose = i ==1,
-       verbose=F,
-        print_every_n = 100,
-        metrics = params[['eval_metric']],
-        maximize =  max_not_min,
-        
-        early_stopping_rounds = ifelse(is.null(spec$early_stopping_rounds), round(2/params$"eta"), spec$early_stopping_rounds)  
-      )}else{ # use user defined feval
+        cv1 <- xgboost::xgb.cv(
+          params = paraList[[i]],
+          data = dtrain,
+          nrounds = ifelse(!(is.null(spec$n_estimators)||is.na(spec$n_estimators)), spec$n_estimators, 1000),
+          folds = folds1, # so the cv split will be the same across the entire unit run
+          prediction = F,
+         # verbose = i ==1,
+         verbose=F,
+          print_every_n = 100,
+          metrics = params[['eval_metric']],
+          maximize =  max_not_min,
+          
+          early_stopping_rounds = ifelse(is.null(spec$early_stopping_rounds), 
+                round(2/ifelse(is.null(paraList[[i]]$eta), params$"eta", paraList[[i]]$eta ) ) , spec$early_stopping_rounds)      )
+        }else{ # use user defined feval
         cv1 <- xgboost::xgb.cv(
           params = paraList[[i]][setdiff(names(paraList[[i]]),'eval_metric')],
           data = dtrain,
@@ -226,7 +230,7 @@ xgbCVwrapper <- function(X_train, Y_train, X_test, Y_test , ft_seqs,  weight_tra
           feval = match.fun(params[['eval_metric']]),
           maximize =  max_not_min,
           
-          early_stopping_rounds = ifelse(is.null(spec$early_stopping_rounds), round(2/params$"eta"), spec$early_stopping_rounds)  
+          early_stopping_rounds = ifelse(is.null(spec$early_stopping_rounds), round(2/ifelse(is.null(paraList[[i]]$eta), params$"eta", paraList[[i]]$eta ) ), spec$early_stopping_rounds)  
         )
       }
       
@@ -602,6 +606,8 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
   if(length(a2) == 1){ # the previous way of only tuning lambda. It was commented out earlier, but wei brought this back when incorporating nextdoor analysis
     tuneResults <- lapply(1:nCv4lambda, function(i) {
   #    set.seed(seed +100 + i)
+      print(paste('nested cv', i))
+      print(pryr::mem_used())
       
       r1 <- cv.glmnet(x=x1, y=(function(yobj){
         if(glmnetFam =='cox') return(Surv(yobj)); 
