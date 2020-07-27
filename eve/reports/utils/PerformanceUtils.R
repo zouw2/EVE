@@ -939,6 +939,11 @@ plotCoef <- function(df, top_n=20, top_n_by="freq", ft_name=NULL, ci1=0.025){
   
   plt.features.base <- ggplot(df.top.f.ggplot, aes(x=feature, y=coef.avg))
   
+  if(!is.null(ft_name)){
+    plt.features.base <- plt.features.base +
+      ggtitle(paste("Top feature, by the user provided list"))
+    }else{
+  
   if (top_n_by == "coef") {
     plt.features.base <- plt.features.base +
       ggtitle(paste("Top feature, by absolute Coeficient magnitude"))
@@ -955,6 +960,7 @@ plotCoef <- function(df, top_n=20, top_n_by="freq", ft_name=NULL, ci1=0.025){
           ggtitle("Top features")
       }
     }}
+  }    
   
   plt.features <- plt.features.base +
     geom_col() +
