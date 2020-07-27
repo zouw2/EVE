@@ -539,7 +539,7 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
                              glmnetFam="binomial", a1=1, 
                              nCv4lambda=10, lambdaSum=mean, 
                              runPairs=c(),
-                             lambdaChoice = 'lambda.min',  w=1, ... ){
+                             lambdaChoice = 'lambda.min',  w=1, usePerCVlambda=F, ... ){
   
   set.seed(seed)
   stopifnot(is.matrix(X_train)); stopifnot(is.matrix(X_test))
@@ -607,27 +607,50 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     tuneResults <- lapply(1:nCv4lambda, function(i) {
   #    set.seed(seed +100 + i)
       print(paste('nested cv', i))
-      print(pryr::mem_used())
+      
       
       r1 <- cv.glmnet(x=x1, y=(function(yobj){
         if(glmnetFam =='cox') return(Surv(yobj)); 
         return(yobj) })(Y_train), keep=T, family=glmnetFam, alpha = a2 , standardize =T, weights=w, ...)
       
       vimp <- NULL
-      if(require('nextdoor') && length(runPairs) == 0 && ! glmnetFam %in% c("multinomial")){  # nextdoor is not implemented for cox model
-        n1 <- nextdoor.glmnet(x=x1, y=(function(yobj){
+      if(usePerCVlambda && require('nextdoor') && length(runPairs) == 0 && ! glmnetFam %in% c("multinomial")){  
+        n1 <-  nextdoor.glmnet(x=x1, y=(function(yobj){
           if(glmnetFam =='cox') return(Surv(yobj)); 
-          return(yobj) })(Y_train), cv_glm =r1, nams= colnames(x1), family=glmnetFam,  glmnet_alpha = a2, standardize =T , selectionType = ifelse(lambdaChoice == "lambda.1se", 1, 0 ), pv=F, score=F, trace = F)
+          return(yobj) })(Y_train), cv_glm =r1, nams= colnames(x1), family=glmnetFam,  glmnet_alpha = a2, standardize =T , selectionType = ifelse(lambdaChoice == "lambda.1se", 1, 0 ), pv=F, score=F, trace = F) 
+        
         vimp = unlist(n1$worsen)
         stopifnot(length(vimp) == length(n1$worsen)) # assume every element of worsen is a scalar
     #    vimp =  matrix(vimp, nrow=1, dimnames = list(c(),names(vimp)) )
+        
       }
+
+      list(lambda = r1[[lambdaChoice]], vimp=vimp, cv =  (function(){
+        if(usePerCVlambda) return(NA)
+        r1 # return the CV object for later next door analysis
+        })() )
       
-      list(lambda = r1[[lambdaChoice]], vimp=vimp)
-      
-    })  
+    })
     
     maxL <- lambdaSum( sapply(tuneResults, function(x) x[['lambda']])  , na.rm = T)
+    
+    if((!usePerCVlambda) && require('nextdoor')){ # override the default behavior of nextdoor (using getIndex() to find features to evaluate
+      tuneResults <- lapply(tuneResults, function(tr){
+        
+        n1 <-  nextdoor.glmnet( x=x1, y=(function(yobj){
+          if(glmnetFam =='cox') return(Surv(yobj)); 
+          return(yobj) })(Y_train), cv_glm =tr[['cv']], nams= colnames(x1), family=glmnetFam,  glmnet_alpha = a2, standardize =T , selectionType = ifelse(lambdaChoice == "lambda.1se", 1, 0 ), pv=F, score=F, trace = F, sumLambda = maxL) 
+        
+        vimp = unlist(n1$worsen)
+        stopifnot( length(vimp) == length(n1$worsen) )
+
+        list(lambda = tr[['lambda']], vimp=vimp)
+        
+        })
+      
+    }
+    
+    
     
     if(!is.null(tuneResults[[1]][['vimp']] ) ) {
       importance <- vbind( lapply(tuneResults, function(x) x[['vimp']] ) ) 

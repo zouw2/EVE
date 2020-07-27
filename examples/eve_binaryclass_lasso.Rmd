@@ -161,7 +161,7 @@ print( df.plt$plt.features ) # consistent with earlier output
   }
   
   set.seed(27519)
-  with(df.plt$top_df,  wordcloud::textplot(x = n, y = vimp, words=feature, show.lines = T, new=T, xlab= 'Frequency (summed across CVs/seeds)', ylab = "Gain (averaged across seeds)"))
+  with(subset(df.plt$top_df, !is.na(vimp)),  wordcloud::textplot(x = n, y = vimp, words=feature, show.lines = T, new=T, xlab= 'Frequency (summed across CVs/seeds)', ylab = "Gain (averaged across seeds)", xlim=c(0, max(n)), ylim=range(vimp), main=paste('top', length(unique(feature)),'features') ))
   
 }
 ```

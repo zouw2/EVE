@@ -59,7 +59,7 @@ summary(df.orig[[runSpec$label_name]])
 
 
 ```
-run with `r runSpec$engine`.
+run with `r runSpec$engine`  with alpha = `r runSpec$alpha`.
 
 ## 1. Scores
 
