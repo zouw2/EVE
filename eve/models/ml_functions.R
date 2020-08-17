@@ -394,7 +394,7 @@ if( length(RFE_step) > 1 ) return( RFE_step )
       ft <- ft - step_size
     }
  
-    if(tail(sizes,1) > min_step) {
+    if(tail(sizes,1) > min_step * 2) {
       sizes <- c(sizes, seq(from= tail(sizes,1) - min_step, to = min_step, by=min_step*-1))
     }
     return(sizes)
