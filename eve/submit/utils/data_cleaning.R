@@ -91,11 +91,11 @@ clusterMiss <- function(ds1, dis_measure =  list('row' = 'jaccard', 'col'='jacca
   
   pheatmap(ds2b, color=c('yellow', 'black'),show_rownames = F, show_colnames = F, scale='none',clustering_distance_rows = dis_measure[['row']], clustering_distance_cols = dis_measure[['col']], clustering_method = linkage, cutree_rows=numCluster['row'] , cutree_cols=numCluster['col'] , main= paste('hclust of missingness (>0 : not missing)')  )
   
-  pt_groups <- cutree(hclust(dist(ds2b)), k=numCluster['row']  )
+  pt_groups <- cutree(hclust(dist(ds2b, method= dis_measure[['row']]), method=linkage), k=numCluster['row']  )
   print('row groups:')
   print(table(pt_groups))
   
-  ft_groups <- cutree(hclust(dist(t(ds2b))), k=numCluster['col']  )
+  ft_groups <- cutree(hclust(dist(t(ds2b, method= dis_measure[['col']])),method=linkage ), k=numCluster['col']  )
   print('column groups:')
   print(table(ft_groups))
   
@@ -135,7 +135,7 @@ clusterMiss <- function(ds1, dis_measure =  list('row' = 'jaccard', 'col'='jacca
   
   summary1( apply(ds2c, 2, mean) )
   
-  return(filtered )
+  invisible(filtered )
 }
 
 
