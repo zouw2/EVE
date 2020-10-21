@@ -226,7 +226,7 @@ for (cv.idx in cvList){
       }
       
       df_pred_tmp <- df.out$pred
-      df_pred_tmp["cv"] <- cv_id
+      df_pred_tmp[["cv"]] <- cv_id
   #    df_pred_tmp[[runSpec$sample_ID]] <- rownames(X_test) ## add sample ID here
       df_pred_tmp[[runSpec$sample_ID]] <- rownames(df_pred_tmp)
       rownames(df_pred_tmp) <- NULL
@@ -248,6 +248,6 @@ stopifnot(!any(duplicated(df_pred$sample_ID)))
 save(df_pred, df_vimp, file=outF)
 
 end.time <- Sys.time()
-time.taken <- end.time - start.time
+time.taken <- difftime( end.time , start.time, units='mins')
 
-print(paste('time taken: ', time.taken)) # give the running length helps user to pick a queue type
+print(paste('time taken: ', time.taken, 'mins')) # give the running length helps user to pick a queue type
