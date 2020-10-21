@@ -83,6 +83,8 @@ generate_cmd_slurm <- function(runSpec, curr_seed, cv, file_run, file_cmd){
     
   } else {
     scripts <- paste0(key_command,
+                      "\nmodule purge",
+                      "\nml R/R_3.6.1_Bioc_3.10/R-3.6.1-Bioc-3.10-prd-20200217",
                       "\nR CMD BATCH   --no-save --no-restore '--args ", curr_seed, ## arg 1
                       " ", paste0(log_path, '/metainfo.Rdata'), ## arg 2
                       " ", cv, ## arg 3, CV number
