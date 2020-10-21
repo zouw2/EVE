@@ -4,7 +4,7 @@ round.signif <- function(x, p)
 }
 
 
-if( ! (R.version$major >= 3 && R.version$minor >= 5.1 )) {
+if( ! (R.version$major > 3 || ( R.version$major = 3 && R.version$minor >= 5.1 ) ) ) {
   stop(paste('reporting needs R version >= 3.5.1'))
 }
 
@@ -297,15 +297,40 @@ myCindex <- function(...){
 }
 
 
+cox.table2 <- function(data,tte,cens,form, rowID, digit=0,fit=NULL){
+  if(is.null(fit)){
+    vars <- all.vars(as.formula(paste("~",form)))
+    form <- as.formula(paste("Surv(",tte,",",cens,")~", form))
+    coxfit <- coxph(form,data=data)
+  }
+  
+  if(missing(rowID))
+    rowID <- 1:nrow(summary(coxfit)$coef)
+  if(digit > 0) {
+    tmp <- cbind(round.signif(summary(coxfit)$coef[rowID,c("exp(coef)","se(coef)", "Pr(>|z|)"), drop=FALSE],digit),
+                 round(summary(coxfit)$conf[rowID,c("lower .95", "upper .95"), drop=FALSE],digit))
+  }else{
+    tmp <- cbind(summary(coxfit)$coef[rowID,c("exp(coef)","se(coef)", "Pr(>|z|)"), drop=FALSE],
+                 summary(coxfit)$conf[rowID,c("lower .95", "upper .95"), drop=FALSE])
+  }
+  colnames(tmp) <- c("HR","selogHR","p.value","conf.low","conf.high")
+  return(tmp)
+}
+
+
 #' Calculate hazard ratio using coxph and cindex using rfsrc::cindex
 #' @param df agrregated prevalidation dataframe from getResults function
 #' 
 coxHR <- function(df){
+  coxHR <- data.frame(cox.table2 (data = df,tte = 'col_surv',cens = 'col_event',form = 'pred.binary'))
+  
+  if(F){ #andrew's code causing problems for survival version 3.2-7: the broom:tidy() function no longer extracts confidence interval now.
   coxHR <- coxph(Surv(col_surv, col_event) ~ pred.binary, df) %>% 
     tidy %>% 
     select(estimate, p.value, conf.low, conf.high) %>%
     mutate_at(vars(estimate, conf.low, conf.high), exp) %>% 
     rename(HR = estimate)
+  }
   
   coxHR$cindex <- myCindex(df$col_surv, df$col_event, df$pred*-1)
   return(coxHR)
