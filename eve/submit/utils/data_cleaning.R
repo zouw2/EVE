@@ -83,7 +83,12 @@ clusterMiss <- function(ds1, dis_measure =  list('row' = 'jaccard', 'col'='jacca
       if(d == 'row') return( as.dist( philentropy::distance(ds2b > 0, method=d_text) ) )
       if(d == 'col') return( as.dist( philentropy::distance(t(ds2b) > 0, method=d_text) ) )
     }else{
-      d_text
+      if (d_text %in% c("euclidean", "maximum", "manhattan", "canberra", "binary" , "minkowski") ) {
+        if(d == 'row') return( dist(ds2b > 0, method=d_text) )
+        if(d == 'col') return( dist(t(ds2b) > 0, method=d_text ) )     
+      }else{
+        stop ( paste(d_text,'distance is not handled'))
+      }
     }
   })
   
@@ -91,11 +96,11 @@ clusterMiss <- function(ds1, dis_measure =  list('row' = 'jaccard', 'col'='jacca
   
   pheatmap(ds2b, color=c('yellow', 'black'),show_rownames = F, show_colnames = F, scale='none',clustering_distance_rows = dis_measure[['row']], clustering_distance_cols = dis_measure[['col']], clustering_method = linkage, cutree_rows=numCluster['row'] , cutree_cols=numCluster['col'] , main= paste('hclust of missingness (>0 : not missing)')  )
   
-  pt_groups <- cutree(hclust(dist(ds2b, method= dis_measure[['row']]), method=linkage), k=numCluster['row']  )
+  pt_groups <- cutree(hclust( dis_measure[['row']], method=linkage), k=numCluster['row']  )
   print('row groups:')
   print(table(pt_groups))
   
-  ft_groups <- cutree(hclust(dist(t(ds2b, method= dis_measure[['col']])),method=linkage ), k=numCluster['col']  )
+  ft_groups <- cutree(hclust( dis_measure[['col']],method=linkage ), k=numCluster['col']  )
   print('column groups:')
   print(table(ft_groups))
   
