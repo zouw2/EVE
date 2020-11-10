@@ -24,8 +24,7 @@ _current setup assumes users always clone this repo to your unix HOME_. The bran
 
 Install some R libraries
 
-Open [RStudio on Rosalind](http://gred-rstudio-p01.sc1.roche.com:8080/), 
-make sure you are using **R 3.6.1** , then verify that the following libraries are available in R. You will also need the nextdoor package for lasso
+Open [RStudio on Rosalind](http://gred-rstudio-p01.sc1.roche.com:8080/), then verify that the following libraries are available in R. You will also need the nextdoor package for lasso
 
 
 ```r
