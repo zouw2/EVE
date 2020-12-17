@@ -929,7 +929,7 @@ fillInMissingProbWithNeighbor <- function(x, cols, pattern='^X[\\d\\.]+$', metho
   tofill <- setdiff(cols, colnames(x))
 
   if(length(tofill)> 0 && method == 'LinearInterpolation'){
-    ta1 <- as.numeric( gsub('^X','', colnames(x), perl=T) )
+    ta1 <- as.numeric( gsub('^X','', gsub('e\\.(\\d+)', 'e-\\1',  colnames(x), perl=T), perl=T) )
     stopifnot(!any(is.na(ta1)))
     stopifnot(all(ta1 >= 0))
     

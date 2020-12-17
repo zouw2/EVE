@@ -131,6 +131,7 @@ for (cv.idx in cvList){
   if (cv_id_curr == 0){
     print("CVs within job")
     print(paste("Fold number:", cv_id))
+    stop('CVs witin job for random forest has to be updated')
     X_train = x[-cv.idx, featureList, drop=F]
     Y_train = y[-cv.idx, ]
     X_test  = x[ cv.idx, featureList, drop=F]
@@ -138,7 +139,7 @@ for (cv.idx in cvList){
     print(paste('using', paste(head(cv.idx, 10), collapse=','),',etc, as validation' ))
 
     if( (length(runSpec$ntime) ==1 && runSpec$ntime > 0) || length(runSpec$ntime) > 1 ) {
-      df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed) 
+      df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed)
     }else{
       df.out <- rfeSRCCv3(X_train, Y_train, X_test, Y_test, sizes, seed,outputPrediction='') # do not save predicted survival prob
     }
