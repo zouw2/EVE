@@ -634,12 +634,12 @@ glmnetCVwrapper2 <- function(X_train , Y_train, X_test, Y_test,
     
     maxL <- lambdaSum( sapply(tuneResults, function(x) x[['lambda']])  , na.rm = T)
     
-    if((!usePerCVlambda) && require('nextdoor')){ # override the default behavior of nextdoor (using getIndex() to find features to evaluate
+    if((!usePerCVlambda) && require('nextdoor')  && length(runPairs) == 0 && ! glmnetFam %in% c("multinomial")){ # override the default behavior of nextdoor (using getIndex() to find features to evaluate
       tuneResults <- lapply(tuneResults, function(tr){
         
         n1 <-  nextdoor.glmnet( x=x1, y=(function(yobj){
           if(glmnetFam =='cox') return(Surv(yobj)); 
-          return(yobj) })(Y_train), cv_glm =tr[['cv']], nams= colnames(x1), family=glmnetFam,  glmnet_alpha = a2, standardize =T , selectionType = ifelse(lambdaChoice == "lambda.1se", 1, 0 ), pv=F, score=F, trace = F, sumLambda = maxL) 
+          return(yobj) })(Y_train), cv_glm =tr[['cv']], nams= colnames(x1), family=glmnetFam,  glmnet_alpha = a2, standardize =T , selectionType = ifelse(lambdaChoice == "lambda.1se", 1, 0 ), pv=F, score=F, trace = F, sumLambda = maxL)  #if a user provides a sumLambda, the value will be used to determine the features to evaluate worsening statistics
         
         vimp = unlist(n1$worsen)
         stopifnot( length(vimp) == length(n1$worsen) )
