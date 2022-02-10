@@ -1,0 +1,34 @@
+---
+title: "automatically removing high missing patients or features"
+author: "wei zou"
+date: "`r Sys.time()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+
+ 
+load( '~/EVE/examples/clusterMiss/oak_i_cps_c3d1_notAEinput.Rdata' )
+
+source('~/EVE/eve/submit/utils/data_cleaning.R')
+
+library(pheatmap)
+ 
+
+```
+
+
+# using Jaccard distance
+
+```{r , echo=T}
+c1 <- clusterMiss(ds1, dis_measure = list('row'='jaccard', 'col'='jaccard'), numCluster = c('row'=2, 'col'=4  ))
+```
+
+# using eucledian distance
+
+this is an option; but not the default setting
+
+```{r, echo = T }
+c1 <- clusterMiss(ds1, dis_measure = list('row'='euclidean', 'col'='euclidean'), numCluster = c('row'=2, 'col'=4  ))
+```
