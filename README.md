@@ -22,10 +22,15 @@ _current setup assumes users always clone this repo to your unix HOME_. The bran
 ### Install Required Packages
 
 
-Install some R libraries
+Install necessary R libraries to R3.6.1 on Rosalind, as actual model fitting uses R3.6.1. R3.6.1 is not accessible from [the Rstudio server](http://gred-rstudio-p01.sc1.roche.com:8080/) and has to be accessed from the commandline:
 
-Open [RStudio on Rosalind](http://gred-rstudio-p01.sc1.roche.com:8080/), 
-make sure you are using **R 3.6.1** , then verify that the following libraries are available in R. You will also need the nextdoor package for lasso
+```console
+
+ml R/R_3.6.1_Bioc_3.10/R-3.6.1-Bioc-3.10-prd-20200217
+R
+```
+
+Then verify that the following libraries are available in R3.6.1. You will also need the nextdoor package for lasso. R4.0.0 is available from Rosalind Rstudio server; we should be able to submit eve jobs (run the *.r files in the example fold) and generate reports (run the *.rmd files) there.
 
 
 ```r
