@@ -53,7 +53,7 @@ imputeWithSummaryStat <- function(dsin, FUN=median, flag.var = '_F'){
 #' @export
 #'
 #' @examples c1 <- clusterMiss(ds1, dis_measure = list('row'='jaccard', 'col'='jaccard'), numCluster = c('row'=2, 'col'=4  ))
-clusterMiss <- function(ds1, dis_measure =  list('row' = 'jaccard', 'col'='jaccard'), linkage = "complete", numCluster = c('row'=2, 'col'=2  )) {
+clusterMiss <- function(ds1, dis_measure =  list('row' = 'jaccard', 'col'='jaccard'), linkage = "complete", numCluster = c('row'=2, 'col'=2  ), plot=T) {
   
   
   stopifnot(!is.null(row.names(ds1)))
@@ -94,14 +94,14 @@ clusterMiss <- function(ds1, dis_measure =  list('row' = 'jaccard', 'col'='jacca
   
   names(dis_measure) <- dis_measure_name
   
-  pheatmap(ds2b, color=c('yellow', 'black'),show_rownames = F, show_colnames = F, scale='none',clustering_distance_rows = dis_measure[['row']], clustering_distance_cols = dis_measure[['col']], clustering_method = linkage, cutree_rows=numCluster['row'] , cutree_cols=numCluster['col'] , main= paste('hclust of missingness (>0 : not missing)')  )
+  if(plot) pheatmap(ds2b, color=c('yellow', 'black'),show_rownames = F, show_colnames = F, scale='none',clustering_distance_rows = dis_measure[['row']], clustering_distance_cols = dis_measure[['col']], clustering_method = linkage, cutree_rows=numCluster['row'] , cutree_cols=numCluster['col'] , main= paste('hclust of missingness (>0 : not missing)')  )
   
   pt_groups <- cutree(hclust( dis_measure[['row']], method=linkage), k=numCluster['row']  )
-  print('row groups:')
+  print('row groups (after excluding pts with complete data):')
   print(table(pt_groups))
   
   ft_groups <- cutree(hclust( dis_measure[['col']],method=linkage ), k=numCluster['col']  )
-  print('column groups:')
+  print('column groups (after excluding features with complete data):')
   print(table(ft_groups))
   
   # find the label for the smaller group
