@@ -43,7 +43,7 @@ Go to [`examples`](https://github.roche.com/ED-EB/EVE/tree/dev-models/examples) 
 2. prepares input data file if necessary
 3. splits repeated CV or LOOCV by repeated calling the engine script on different CPU
 
-For more definition of user inputs in a *.R, please see [the user input Doc]
+For more definition of user inputs in a *.R, please see [the user input Doc](https://github.com/zouw2/EVE/blob/publication_2022/examples/user%20input%20to%20EVE%20Sbatch.xlsx)
 
 After you modify *.R appropriately, then click **Source** in RStudio, 
 it will start running the models on different CPUs.
