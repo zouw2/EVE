@@ -59,7 +59,7 @@ clusterMiss <- function(ds1, dis_measure =  list('row' = 'jaccard', 'col'='jacca
   stopifnot(!is.null(row.names(ds1)))
   stopifnot(!is.null(colnames(ds1)))
   
-  cat('raw input dimension:', dim(ds1), '\n')
+  cat('raw input dimension:', dim(ds1), ', assuming patients are arranged along the rows and each variable is a feature\n')
   
   ds1 <- ds1[!apply(ds1, 1, function(x) all(is.na(x))) , !apply(ds1, 2, function(x) all(is.na(x)))]
   
@@ -94,7 +94,7 @@ clusterMiss <- function(ds1, dis_measure =  list('row' = 'jaccard', 'col'='jacca
   
   names(dis_measure) <- dis_measure_name
   
-  if(plot) pheatmap(ds2b, color=c('yellow', 'black'),show_rownames = F, show_colnames = F, scale='none',clustering_distance_rows = dis_measure[['row']], clustering_distance_cols = dis_measure[['col']], clustering_method = linkage, cutree_rows=numCluster['row'] , cutree_cols=numCluster['col'] , main= paste('hclust of missingness (>0 : not missing)')  )
+  if(plot) pheatmap(ds2b, color=c('yellow', 'black'),show_rownames = F, show_colnames = F, scale='none',clustering_distance_rows = dis_measure[['row']], clustering_distance_cols = dis_measure[['col']], clustering_method = linkage, cutree_rows=numCluster['row'] , cutree_cols=numCluster['col'] , main= paste('hclust of missingness (>0 : not missing)\nAmong pt and ft with certain missing')  )
   
   pt_groups <- cutree(hclust( dis_measure[['row']], method=linkage), k=numCluster['row']  )
   print('row groups (after excluding pts with complete data):')
@@ -107,10 +107,10 @@ clusterMiss <- function(ds1, dis_measure =  list('row' = 'jaccard', 'col'='jacca
   # find the label for the smaller group
   
   # support functions defined internally
-  summary1 <- function(x, n=5){
+  summary1 <- function(x, n=5, roleTxt='items'){
     if(length(x) <= n) { print(x); return()}
     
-    cat('summary for', length(x),'items\n')
+    cat('summary for', length(x),roleTxt, '\n')
     print( summary(x) )
     
   }
@@ -125,9 +125,9 @@ clusterMiss <- function(ds1, dis_measure =  list('row' = 'jaccard', 'col'='jacca
   
   # summary for excluded
   print('summary of percent non-missing values among excluded items in the original matrix')
-  summary1( apply(ds2[pt2exclude, ], 1, mean) )
+  summary1( apply(ds2[pt2exclude, ], 1, mean), roleTxt='patients' )
   
-  summary1( apply(ds2[, ft2exclude], 2, mean) )
+  summary1( apply(ds2[, ft2exclude], 2, mean), roleTxt= 'features' )
   
   # summary for not excluded
   print('summary of percent non-missing values after removing patients and samples with high missing')
@@ -136,9 +136,9 @@ clusterMiss <- function(ds1, dis_measure =  list('row' = 'jaccard', 'col'='jacca
   
   ds2c <- !is.na(filtered)
   
-  summary1( apply(ds2c, 1, mean) )
+  summary1( apply(ds2c, 1, mean), roleTxt='patients'  )
   
-  summary1( apply(ds2c, 2, mean) )
+  summary1( apply(ds2c, 2, mean), roleTxt= 'features' )
   
   invisible(filtered )
 }
