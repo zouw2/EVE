@@ -42,14 +42,14 @@ imputeWithSummaryStat <- function(dsin, FUN=median, flag.var = '_F'){
 
 
 
-#' Clustering the missing pattern in the input data and remove clusters of features. 
+#' Clustering the missing pattern in the input data and remove the feature and patients in the least frequent subgroup. 
 #'
 #' @param ds1 input data. It must have row names and column names
 #' @param dis_measure distance measure; since we will cluster only binary variables (missing or not), the default is jaccard dissimilarity measurements for both rows and columns
 #' @param linkage the agglomeration method fed to hclust
 #' @param numCluster The number of clusters for rows and columns. An assumption of this function (to remove high missingness) is that the majority of rows and columns have non-missing data; rows/columns with high missingness will be clustered togther and form small subgroups. Only the subgroup (of rows/columns) with the highest frequency will be returnes; other records are discorded  
 #'
-#' @return an input data with rows in the most frequent row subgroup and columns in the most frequent column subgroup
+#' @return an input data, removing the least frequent patient subgroup and the least frequency feature subgroup (subgroups were created by cluster). 
 #' @export
 #'
 #' @examples c1 <- clusterMiss(ds1, dis_measure = list('row'='jaccard', 'col'='jaccard'), numCluster = c('row'=2, 'col'=4  ))
@@ -108,7 +108,10 @@ clusterMiss <- function(ds1, dis_measure =  list('row' = 'jaccard', 'col'='jacca
   
   # support functions defined internally
   summary1 <- function(x, n=5, roleTxt='items'){
-    if(length(x) <= n) { print(x); return()}
+    if(length(x) <= n) { 
+      
+      cat('list of', length(x),roleTxt, '\n')
+      print(x); return()}
     
     cat('summary for', length(x),roleTxt, '\n')
     print( summary(x) )
@@ -130,7 +133,7 @@ clusterMiss <- function(ds1, dis_measure =  list('row' = 'jaccard', 'col'='jacca
   summary1( apply(ds2[, ft2exclude], 2, mean), roleTxt= 'features' )
   
   # summary for not excluded
-  print('summary of percent non-missing values after removing patients and samples with high missing')
+  print('summary of percent non-missing values after removing the least frequent patient subgroup and the least frequency feature subgroup (subgroups were created by cluster). ')
   
   filtered <- ds1[setdiff(row.names(ds1), pt2exclude), setdiff(colnames(ds1), ft2exclude)]
   
