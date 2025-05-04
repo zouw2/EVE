@@ -1,28 +1,16 @@
 # EVE <img src="/images/EVE.png" width="20%"> 
 
 
-[![GitHub repo version](https://img.shields.io/badge/release-v0.3-blue.svg)](https://github.roche.com/ED-EB/EVE)
-
 
 # Getting started
 
 
-### Clone this repo to your HOME
+### Clone this repo to your linux HOME
 
-```console
-
-ssh rosalind.gene.com
-
-cd ~
-git clone --branch dev-models https://github.roche.com/ED-EB/EVE.git
-```
 _current setup assumes users always clone this repo to your unix HOME_. The branch dev-models contains the latest update.
 
 
-### Install Required Packages
-
-
-Install necessary R libraries to R3.6.1 on Rosalind, as actual model fitting uses R3.6.1. R3.6.1 is not accessible from [the Rstudio server](http://gred-rstudio-p01.sc1.roche.com:8080/) and has to be accessed from the commandline:
+### Install Required Packages to R3.6.1 
 
 ```console
 
@@ -30,7 +18,7 @@ ml R/R_3.6.1_Bioc_3.10/R-3.6.1-Bioc-3.10-prd-20200217
 R
 ```
 
-Then verify that the following libraries are available in R3.6.1. You will also need the nextdoor package for lasso. R4.0.0 is available from Rosalind Rstudio server; we should be able to submit eve jobs (run the *.r files in the example fold) and generate reports (run the *.rmd files) there.
+Then verify that the following libraries are available in R3.6.1, where the machine learning functions have been tested. You will also need the nextdoor package for lasso. We should be able to submit eve jobs (run the *.r files in the example fold) and generate reports (run the *.rmd files) using newer versions of R.
 
 
 ```r
@@ -49,14 +37,13 @@ devtools::install_github("zouw2/NextDoor/nextdoor")
 
 ### Execute
 
-
-Go to [`examples`](https://github.roche.com/ED-EB/EVE/tree/master/examples) folder, copy a *.R to your [project home](https://docs.google.com/spreadsheets/d/1OAmZDae7MF9NXBBwR6YpHjLxbUVFbFw7_y6HzFJegHY/edit#gid=0&range=A4). This R script 
+Go to [`examples`](https://github.roche.com/ED-EB/EVE/tree/dev-models/examples) folder, copy a *.R to your project home. This R script 
 
 1. collects input parameters, including an engine script which may or may not be implemented in R, 
 2. prepares input data file if necessary
 3. splits repeated CV or LOOCV by repeated calling the engine script on different CPU
 
-For more definition of user inputs in a *.R, please see [Google Doc](https://docs.google.com/spreadsheets/d/1OAmZDae7MF9NXBBwR6YpHjLxbUVFbFw7_y6HzFJegHY/edit#gid=0).
+For more definition of user inputs in a *.R, please see [the user input Doc](https://github.com/zouw2/EVE/blob/publication_2022/examples/user%20input%20to%20EVE%20Sbatch.xlsx)
 
 After you modify *.R appropriately, then click **Source** in RStudio, 
 it will start running the models on different CPUs.
@@ -74,12 +61,9 @@ When job is done, you will see `results` folder containing all outputs files.
   - modify the project path and name accordingly
   - knit to pdf and enjoy it
 
-[Check out what the report looks like.](https://github.roche.com/ED-EB/EVE/blob/master/examples/reports/test_eval_multiclass_xgboost.pdf)
-
-
 ### Contribute to EVE
 
 We highly recommend users add new models (e.g. add SVM, Neural Network, etc..), 
 please make sure the model outputs prediction and feature importance (and grid search parameters if any) 
-that follow [this data format](https://github.roche.com/ED-EB/EVE/tree/master/examples/model_output_format). 
+that follow [this data format](https://github.roche.com/ED-EB/EVE/tree/dev-models/examples/model_output_format). 
 With consistent output format, user can use the same reporting template(s) to harvest and compare the result across different models.
